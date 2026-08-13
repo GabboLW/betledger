@@ -1,0 +1,2935 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>BetLedger — Registro Scommesse</title>
+<meta name="description" content="Registro scommesse, bookmaker e budget">
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000D20">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BetLedger">
+<meta name="mobile-web-app-capable" content="yes">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#000D20;
+    --ink-2:#061A33;
+    --surface:#0B2440;
+    --surface-2:#123057;
+    --line:#1E4066;
+    --line-soft:#163150;
+    --text:#EDF2F8;
+    --muted:#8296B0;
+    --muted-2:#5A6E8A;
+    --accent:#74E405;
+    --accent-dim:#4E9A0A;
+    --gain:#74E405;
+    --loss:#FF5C5C;
+    --void:#5E8FD6;
+    --pending:#E8B33D;
+    --radius:14px;
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --disp:'Space Grotesk',system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--ink);color:var(--text);font-family:var(--disp);-webkit-font-smoothing:antialiased}
+  body{padding-bottom:64px}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input,select{font-family:var(--mono);font-size:14px}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .gain{color:var(--gain)} .loss{color:var(--loss)}
+  a{color:var(--accent)}
+
+  /* ---------- shell ---------- */
+  .wrap{max-width:1080px;margin:0 auto;padding:0 18px}
+  header.top{
+    position:sticky;top:0;z-index:40;background:linear-gradient(180deg,var(--ink) 72%,rgba(0,13,32,0));
+    padding:20px 0 10px;
+  }
+  .brandline{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .logomark{width:42px;height:34px;flex:none;position:relative}
+  .brandtxt{font-weight:700;letter-spacing:.14em;font-size:12px;color:var(--muted);text-transform:uppercase}
+  .brandtxt b{color:var(--text);letter-spacing:.02em;font-size:15px;display:block;text-transform:none;letter-spacing:-.01em}
+
+  .hero{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 28px;margin-bottom:4px}
+  .hero .lab{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-2);margin-bottom:6px}
+  .hero .big{font-family:var(--mono);font-weight:600;font-size:clamp(34px,8vw,52px);line-height:.95;letter-spacing:-.02em}
+  .pl-pill{display:inline-flex;align-items:baseline;gap:8px;font-family:var(--mono);font-weight:600;font-size:clamp(15px,4vw,20px);padding:6px 0}
+  .pl-pill .cap{font-family:var(--disp);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2);align-self:flex-end;margin-bottom:3px}
+  .subline{display:flex;flex-wrap:wrap;gap:6px 20px;margin-top:14px;color:var(--muted);font-size:12px}
+  .subline .num{color:var(--text)}
+
+  /* ---------- tabs ---------- */
+  nav.tabs{display:flex;gap:2px;margin:18px 0 22px;border-bottom:1px solid var(--line-soft);overflow-x:auto;-webkit-overflow-scrolling:touch}
+  nav.tabs::-webkit-scrollbar{display:none}
+  .tab{white-space:nowrap;padding:11px 15px;font-size:13px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;letter-spacing:.01em}
+  .tab.active{color:var(--text);border-bottom-color:var(--accent)}
+  .tab:hover{color:var(--text)}
+
+  .panel{display:none;animation:fade .35s ease}
+  .panel.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* ---------- cards / grid ---------- */
+  .card{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--radius)}
+  .card-pad{padding:18px}
+  .grid{display:grid;gap:12px}
+  .kpi-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-bottom:14px}
+  .kpi{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--radius);padding:15px 16px;position:relative;overflow:hidden}
+  .kpi .k-lab{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted-2);display:flex;align-items:center;gap:5px}
+  .kpi .k-val{font-family:var(--mono);font-weight:600;font-size:24px;margin-top:9px;letter-spacing:-.01em;line-height:1}
+  .kpi .k-sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px}
+  .kpi .accentbar{position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);opacity:.55}
+  .kpi.pos .accentbar{background:var(--gain)} .kpi.neg .accentbar{background:var(--loss)}
+  .info{cursor:help;color:var(--muted-2);border:1px solid var(--line);border-radius:50%;width:13px;height:13px;font-size:9px;display:inline-flex;align-items:center;justify-content:center;line-height:1}
+  .kpi.clk{cursor:pointer;transition:border-color .15s,transform .05s}
+  .kpi.clk:hover{border-color:var(--accent-dim)}
+  .kpi.clk:active{transform:scale(.99)}
+  .kpi.clk .info{cursor:pointer}
+  .kpi.clk:hover .info{color:var(--accent);border-color:var(--accent-dim)}
+
+  /* ---------- spiegazione metrica ---------- */
+  #kpi-overlay{position:fixed;inset:0;background:rgba(0,6,16,.78);display:none;align-items:center;justify-content:center;z-index:130;padding:18px;overflow-y:auto}
+  #kpi-overlay.show{display:flex}
+  .kpi-box{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.55);max-height:88vh;overflow-y:auto}
+  .kpi-box .kb-head{padding:20px 22px 14px;border-bottom:1px solid var(--line-soft);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;position:sticky;top:0;background:var(--surface)}
+  .kpi-box .kb-t{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted-2)}
+  .kpi-box .kb-n{font-family:var(--disp);font-weight:700;font-size:19px;margin-top:3px}
+  .kpi-box .kb-v{font-family:var(--mono);font-size:26px;font-weight:600;margin-top:6px;letter-spacing:-.02em}
+  .kpi-box .kb-x{color:var(--muted-2);font-size:15px;padding:2px 6px;line-height:1}
+  .kpi-box .kb-x:hover{color:var(--text)}
+  .kpi-box .kb-body{padding:16px 22px 22px}
+  .kpi-box .kb-sec{margin-bottom:16px}
+  .kpi-box .kb-sec:last-child{margin-bottom:0}
+  .kpi-box .kb-lab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+  .kpi-box .kb-txt{font-size:13.5px;line-height:1.6;color:var(--text)}
+  .kpi-box .kb-txt b{color:var(--text)}
+  .kpi-box .kb-form{font-family:var(--mono);font-size:12.5px;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:8px;padding:11px 13px;color:var(--muted);line-height:1.6}
+  .kpi-box .kb-ex{font-size:13px;line-height:1.65;color:var(--muted);background:rgba(116,228,5,.06);border-left:2px solid var(--accent-dim);border-radius:0 8px 8px 0;padding:11px 13px}
+  .kpi-box .kb-ex b{color:var(--text);font-family:var(--mono)}
+  .kpi-box .kb-note{font-size:12px;line-height:1.6;color:var(--muted-2);border-top:1px solid var(--line-soft);padding-top:12px}
+
+  /* ---------- chart ---------- */
+  .chart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
+  .sec-title{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .chartwrap{position:relative;width:100%}
+  canvas{display:block;width:100%}
+  .chart-tip{position:absolute;pointer-events:none;background:var(--ink-2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-family:var(--mono);font-size:11px;transform:translate(-50%,-120%);white-space:nowrap;opacity:0;transition:opacity .12s;z-index:5}
+  .chart-tip .d{color:var(--muted);font-size:10px}
+
+  /* ---------- tables ---------- */
+  .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{font-family:var(--disp);font-weight:500;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2);text-align:right;padding:10px 12px;border-bottom:1px solid var(--line-soft);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  th.l,td.l{text-align:left}
+  td{padding:11px 12px;border-bottom:1px solid var(--line-soft);font-family:var(--mono);text-align:right;white-space:nowrap;color:var(--text)}
+  tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--surface-2)}
+  .chip{font-family:var(--disp);font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;display:inline-block;letter-spacing:.02em}
+  .c-won{background:rgba(116,228,5,.16);color:var(--gain)}
+  .c-lost{background:rgba(255,92,92,.15);color:var(--loss)}
+  .c-void{background:rgba(94,143,214,.16);color:var(--void)}
+  .c-pending{background:rgba(232,179,61,.16);color:var(--pending)}
+  .rowbtn{color:var(--muted-2);font-size:12px;padding:3px 6px;border-radius:6px}
+  .rowbtn.ord{font-size:10px;padding:3px 5px;color:var(--muted)}
+  .rowbtn.ord:hover:not([disabled]){color:var(--accent);background:rgba(116,228,5,.08)}
+  .rowbtn.ord[disabled]{opacity:.25;cursor:default}
+  .rowbtn:hover{color:var(--text);background:var(--surface-2)}
+  .rowbtn.del:hover{color:var(--loss)}
+
+  /* ---------- forms ---------- */
+  .slip{background:var(--ink-2);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:16px;position:relative}
+  .slip::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;background:var(--accent);border-radius:3px}
+  .slip h3{font-family:var(--disp);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:14px;padding-left:8px}
+  .fields{display:grid;gap:11px;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field.wide{grid-column:1/-1}
+  .field label{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2)}
+  .field input,.field select{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:10px 11px;color:var(--text);width:100%;transition:border-color .15s}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--accent)}
+  .field input::placeholder{color:var(--muted-2)}
+  .field .hint{font-family:var(--mono);font-size:10.5px;color:var(--muted-2)}
+  .checkrow{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:10px 12px;cursor:pointer;transition:border-color .15s;height:100%}
+  .checkrow:hover{border-color:var(--accent)}
+  .checkrow.on{border-color:var(--accent);background:rgba(116,228,5,.10)}
+  .checkrow input{width:16px;height:16px;accent-color:var(--accent);flex:none}
+  .checkrow .cl{font-size:12.5px;color:var(--text);font-family:var(--disp);line-height:1.2}
+  .checkrow .cl small{display:block;color:var(--muted-2);font-size:10.5px}
+  .btn{background:var(--accent);color:#1a1405;font-weight:600;padding:11px 20px;border-radius:9px;font-size:13.5px;letter-spacing:.01em;transition:filter .15s,transform .05s}
+  .btn:hover{filter:brightness(1.08)} .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+  .btn.ghost:hover{color:var(--text);border-color:var(--muted-2)}
+  .btn-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px;align-items:center;padding-left:8px}
+
+  /* ---------- empty ---------- */
+  .empty{text-align:center;padding:38px 20px;color:var(--muted)}
+  .empty .e-big{font-size:15px;color:var(--text);margin-bottom:6px;font-weight:500}
+  .empty .e-sub{font-size:13px;max-width:340px;margin:0 auto;line-height:1.5}
+
+  /* ---------- bookmaker cards ---------- */
+  .bk-list{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+  .bk{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:10px}
+  .bk .bk-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .bk .bk-name{font-family:var(--disp);font-weight:600;font-size:15px}
+  .bk .bk-bal{font-family:var(--mono);font-size:22px;font-weight:600}
+  .bk .bk-meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted);border-top:1px solid var(--line-soft);padding-top:9px}
+
+  /* ---------- budget ---------- */
+  .bar{height:12px;border-radius:8px;background:var(--surface-2);overflow:hidden;margin-top:10px}
+  .bar > span{display:block;height:100%;background:linear-gradient(90deg,var(--accent-dim),var(--accent));transition:width .5s ease}
+  .bar.over > span{background:linear-gradient(90deg,#a3403f,var(--loss))}
+  .two-col{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+
+  /* ---------- overlay / loading / toast ---------- */
+  #install-bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:95;display:none;gap:12px;align-items:center;
+    background:var(--ink-2);border:1px solid var(--accent-dim);border-radius:14px;padding:12px 14px;
+    box-shadow:0 12px 40px rgba(0,0,0,.55);max-width:520px;margin:0 auto}
+  #install-bar.show{display:flex}
+  #install-bar .ib-txt{flex:1;font-size:13px;line-height:1.45;color:var(--text)}
+  #install-bar .ib-txt small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+  #install-bar .ib-close{color:var(--muted-2);font-size:16px;padding:2px 6px;line-height:1;align-self:flex-start}
+  #install-bar .ib-close:hover{color:var(--text)}
+  #loader{position:fixed;inset:0;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;z-index:100}
+  .spin{width:34px;height:34px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  #loader p{color:var(--muted);font-size:13px;letter-spacing:.04em}
+  .banner{background:rgba(116,228,5,.10);border:1px solid var(--accent-dim);color:var(--accent);border-radius:10px;padding:10px 14px;font-size:12.5px;margin-bottom:16px;line-height:1.5}
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink-2);border:1px solid var(--line);border-radius:10px;padding:11px 18px;font-size:13px;z-index:90;transition:transform .3s ease;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  #toast.err{border-color:var(--loss);color:var(--loss)}
+  #confirm-overlay{position:fixed;inset:0;background:rgba(0,6,16,.72);display:none;align-items:center;justify-content:center;z-index:120;padding:20px}
+  #confirm-overlay.show{display:flex}
+  .confirm-box{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .confirm-box p{font-size:14.5px;line-height:1.5;margin-bottom:18px}
+  .confirm-actions{display:flex;gap:10px;justify-content:flex-end}
+  .bk{cursor:pointer;transition:border-color .15s,transform .05s}
+  .bk:hover{border-color:var(--accent-dim)}
+  .bk .bk-open{font-size:11px;color:var(--muted-2);font-family:var(--disp);letter-spacing:.04em}
+  .bk:hover .bk-open{color:var(--accent)}
+  #book-detail{position:fixed;inset:0;background:rgba(0,6,16,.86);display:none;z-index:110;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  #book-detail.show{display:block}
+  .bd-inner{max-width:1000px;margin:0 auto;padding:20px 18px 60px}
+  .bd-head{position:sticky;top:0;background:linear-gradient(180deg,var(--ink) 78%,rgba(0,13,32,0));padding:14px 0 12px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;z-index:2}
+  .bd-name{font-family:var(--disp);font-weight:700;font-size:22px;letter-spacing:-.01em}
+  .bd-bal{font-family:var(--mono);font-weight:600;font-size:30px;margin-top:4px;letter-spacing:-.02em}
+  .bd-sub{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2);margin-bottom:2px}
+
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+  .filters select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;color:var(--text)}
+  .filters .fl-lab{font-size:11px;color:var(--muted-2);letter-spacing:.08em;text-transform:uppercase}
+  .fbtn{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 12px;color:var(--muted);font-size:12px;transition:.15s}
+  .fbtn:hover{color:var(--text);border-color:var(--accent-dim)}
+  .fbtn.active{background:rgba(116,228,5,.1);border-color:var(--accent);color:var(--accent)}
+
+  /* ---------- chiusura rapida ---------- */
+  .qs{background:var(--surface);border:1px solid var(--accent-dim);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px}
+  .qs-row{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line-soft);flex-wrap:wrap}
+  .qs-row:first-of-type{border-top:none}
+  .qs-info{flex:1 1 200px;min-width:0}
+  .qs-desc{font-size:13.5px;line-height:1.4;word-break:break-word}
+  .qs-meta{font-size:11px;color:var(--muted-2);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
+  .qs-meta .num{color:var(--muted)}
+  .qs-act{display:flex;gap:6px;flex:0 0 auto}
+  .qs-b{border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--muted);transition:.15s;white-space:nowrap}
+  .qs-b:hover{border-color:var(--accent);color:var(--accent);background:rgba(116,228,5,.08)}
+  .qs-b.w:hover{border-color:var(--gain);color:var(--gain);background:rgba(116,228,5,.1)}
+  .qs-b.l:hover{border-color:var(--loss);color:var(--loss);background:rgba(255,90,90,.09)}
+  .qs-more{font-size:11px;color:var(--muted-2);padding-top:10px;border-top:1px solid var(--line-soft);margin-top:4px}
+
+  /* ---------- note ---------- */
+  .field textarea{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:10px 11px;color:var(--text);width:100%;font-family:inherit;font-size:14px;line-height:1.5;resize:vertical;transition:border-color .15s}
+  .field textarea:focus{outline:none;border-color:var(--accent)}
+  .field textarea::placeholder{color:var(--muted-2)}
+  .note-list{display:flex;flex-direction:column;gap:9px}
+  .nt{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:13px 15px;display:flex;gap:12px;align-items:flex-start;transition:border-color .15s}
+  .nt:hover{border-color:var(--line-strong,var(--accent-dim))}
+  .nt.done{opacity:.5}
+  .nt.done .nt-txt{text-decoration:line-through}
+  .nt.due{border-left:2px solid var(--accent)}
+  .nt.late{border-left:2px solid var(--loss)}
+  .nt-chk{flex:0 0 auto;width:19px;height:19px;border:1.5px solid var(--line);border-radius:6px;margin-top:1px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:transparent;transition:.15s}
+  .nt-chk:hover{border-color:var(--accent)}
+  .nt.done .nt-chk{background:var(--accent);border-color:var(--accent);color:var(--ink)}
+  .nt-main{flex:1 1 auto;min-width:0}
+  .nt-txt{font-size:14px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+  .nt-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:7px;font-size:11px;color:var(--muted-2)}
+  .nt-tag{font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:20px;border:1px solid var(--line)}
+  .nt-tag.todo{color:var(--accent);border-color:var(--accent-dim);background:rgba(116,228,5,.07)}
+  .nt-tag.idea{color:#7BB8FF;border-color:rgba(123,184,255,.3);background:rgba(123,184,255,.07)}
+  .nt-tag.promo{color:#FFC46B;border-color:rgba(255,196,107,.3);background:rgba(255,196,107,.07)}
+  .nt-tag.nota{color:var(--muted)}
+  .nt-due{font-family:var(--mono)}
+  .nt-due.late{color:var(--loss)}
+  .nt-due.soon{color:var(--accent)}
+  .nt-act{flex:0 0 auto;display:flex;gap:2px}
+
+  .foot{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:26px;padding-top:20px;border-top:1px solid var(--line-soft)}
+  .foot button{font-size:12px;color:var(--muted-2)}
+  .foot button:hover{color:var(--text)}
+  .foot .danger:hover{color:var(--loss)}
+
+  @media(max-width:560px){
+    .card-pad{padding:14px}
+    .kpi-grid{grid-template-columns:repeat(2,1fr)}
+    .kpi .k-val{font-size:20px}
+  }
+</style>
+</head>
+<body>
+
+<div id="loader"><div class="spin"></div><p id="loadmsg">Apro il registro…</p></div>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brandline">
+      <div class="logomark"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAG4AAABYCAYAAAAUeMJLAAARKUlEQVR42u1df3ATd3Z/3139QI6RrLGMEU5SrhPCJZM7wOFqWq5prxOSXMrgnB3JBlsTl+tcRRtSOLu5o2N3rrFnuOZQ4QJzuMzQU0d2bFaxCZyvuHVnrpcOHXwJJqbUwcXTy4QS47MZYWEkS9rVt3/IzyyLfuxKu7KN82Y0YNm72tXn+977vM/3fb9LQKHxgsDoWDYOAMDHeAGWoI2MjvlCodmh29PB8f7+cz8/4jkYwt/5Ojmrq85xG4DQxXwPJFvgLl+56n16/RMueAhsZHTM9/n4b37+0rbn/PheX1/EsH27MfrQAbdUvS2TfXTpyv4tv7PxnXv3ytDF6H2M0gMwTD6stnnTM4f5GC94O/3OxL0Suq/xQMGSBw7zADzkVu/8VtflK1e9AABHPAdDi+2emWwAE4Bsg2VgT69/wsXHeGFf44ECV50zsGSBs1oq7wIAfHndutWwjOzQD1vv2MqqigAAFkvYVEROHkZGqSi/63UsLwjMYsj1DHxhsu3ylavexULOFAGHF70cvQ3v29fJWXUsG19osiI7VGKY3Nd4oODQD1vvLGfPw5C5kN6nU3rAs+WbjMs9ZM7VeFy+wTNQIJv8JltWwJWsWv38cgeufMNXXgYALh+fZXdbLY//0azh6y/NTnsIjQ5CeDIrcrLGvuqPlztwT69/wrWv8UABpg4tPKuCM5VQypLx9sD0oDM86THTqN1ttVR4ix1fsMocbGN5+XYAgENvt82qcb7GIDFUcKYSAIAoATroDE8SIlB8r2HYdKq6ZWbqa9uC72ZFTtQQl3V6HQsA8Ddtf7/jrebvnsX/4+9/+0uPrQAA+N9fX5f9pbzV/N2zeD5vp985x72eq3e+skcL4EZGx3xffebLDdnmOQMFUtlrXPWZwMQHnYnwlzBKKrgC26AzPPn6DX0s2bEfDph3KZ8dUAG4pu+3rBTPgeWDTNQ7v9W10MAhWI9viwY8ZnrflFEFZyp5aj0cK7TxVZnO09NaaJMF3L7GAwVHPAdD+5uOlv7o4J7P1fA4XydnHRq/yZfbV+u0AGtnbfW0tP5UU/FRChylLCFEuG96qMJb7BhsuOVP5VnJ7FhZTC87VCZmhZ0BXydn3emsmlpqdRBev1oRI9v7sLutlse3MC88tSn0qhzPShomz+vWDDrDk4yS0btu3ZMuNUZqvomEq84ZQI2xgzu9M5+f3RgkBrvbahGTi2xBAwAYdIYnKWWJIlZZULCifKmywKY3m1fwgsB8PDTUp1aolPN3nw0YrLeOB4KfXCp4L9fPnPpUvxcAwAhC/suBoeH/+ueFAA7JUD5JEQCAvzoyAQAw2HDLj/kpW+veGmoHANjkN9kUAadGYmeBDgAAdHX3WPINnpo5NRSaHZJ7H1EClFKWiMmFUhMfJyvHYfJ9tqpeFTX84tCliPjffBrmOTXs2rX/8Sm5D0IEandbLQiCUgA3nyxux5ypqABXk1EuZK6zlVUV3fyUu7UYmHE2ZYDdbbWMtwemZddQaorLCzEl4uvkrBeHLkU2lpe/kG9mjF82es6Wl4LfVnL8hX7zSVvZHxS99snpkMecOA8jN7wUWcz2pVgKiEuaI56DoTllPycbHr68H5mqXNCwZ0UpaAAA7MpQy9SN3tufDRjm05Vsj1OjFMCEnm9vw8G3r/FAQa4Ea2R0zId1oY5lQ5lqOI85MG13Wy0v7jn3D4U2fVb1G9ZuhCQYqiyPU9OuXrt2E8NWvj4Tp110LBvf/Sev/UQNb+MFgcnEJhOg0WgFZyqpbpmZylR0pyIrF/rNJwEAtvgNtvvIjuxRq9KsQDrQdtZWT6vljbwgMP3neB32/6uhU8rRJ+1uq2XX27fDHjONVniLHTgNIxc0KWGRkhJFo3V/09FSPsYLub7UIBi8IDC+Ts6KL14QGPF7+DMe82xVvfXylateNa7fVlZVJD2/2Bw9xlIpa8z0qj1f4BYfU+EtduDvxN77QHkhh/2pVQqgTthQ5+DEXdENdQ6uf+ADx83fTJCGOocqLQH7m46W1jh/v2bzpmcOq3G+Lq7XJspt8VShESAx6SlHj7zQbz750bdvuaXnQOb54YB512DDLX8FZyq5f85OJnBqhcpMhitlpF8O/pyYICXPrV616pfIcq9eG3sSgH6A3dVIotRsIezgTu/EwZasFd3RYyz1V0cm7G6rpbplRtYAv37RtPv8nud/9tonp0PvvllkkobBzSeL29mVoZZBZ3jSQIFECVDFwF341cdvqDVylYImZoVd3T0WNTxfLdDEX6jcfAYAMHGBedRfHZlINkcn12SxSq1nBdKBJi4fXHXOQBfXa8sXaF1cr62hzsHxgsBIQXP0GEujBKitrKqo8qzZJRe0DwfMu/zVkQkDhbSgJctrioHTsnN5ZHTMlwy05mZgKGWJgSaiAuZaV50zAAzRawnYyOiY769+/JMinDyWDqbGIDH4qyMTtrKqoqkbvbcfezb8j7JAO69bgzlLGvqkJm1tUGCUiEsBLV64/kzK0qSjDcET14B9fRGDFtfk7XzvmPSz7mN9c11XdrfVIoc14gsFZjw+V2NSlwJ/bdKyWE5VEyGzqj1f4G4YNp2yu62WKAGKYLrqnAFcn63FbHa985U9F3718RuobYoHFaUsGXSGJyu8xQ65JGRmStfb01poG28PTDt6jKVSdqg6cM9/4we82uKyEtBsa2NHC2181Yt7Zk9UcKYSj5lGEbzt241RXhCYhjoHpwV4mzc9c1gAsu2I52Coq7vHgt5CCA+15wvccvPZzJSu17shXDPeHpjG8KrWNabUKl/6po5XS1yWA5qjx1jqMUcmKs+aXba14aP4fqGNr3oKdPCZ2/odjznxBXjMNKpj2fjcOTgAP6jZfodMkhcE5rG/sMVRJJ66QW7b1uqPKgGNUpas2WM2o6qvlpFMpYBWLW1itogFpqPHWFq6Jf5/aZO7MzwpLnbVrjURtL6+iOEXz60AbP1+cc/sCblNPihTcZFCtt4wE89ERDQrB7QErTFIDHJAAwB4aj0cQ8bV3Azz55nPQzmyTTH9/6eI2eox06ijx1gqRyRGw4YeLlLIOo0zghagyQJODW9LBVoiPCYU9EygYdhEwtLWBnHMeaKwGc8251XUNNiwVmMZA/VXRyY2nyxul3NdYjWke2uovTFIDE7jjKZKE0kXJtVYxJgONH91ZKKCM5V8bSuvuDsawxGeRyqNKcl5ydop5OqNYtDO7Aj6xGFcS0vrcbkuYhSD1vRm8wpxeERtLxvQ8IsFSLS/ScOmXLY5Mjrmk4KGzauLGbSMwOVSCkhBw37G5mZg8Obk1kLpwiYAQFsbxJWC18G9fxyvD0Ou3ElPqe54ZkfQh2E/X5whLXDZlgKpQDNQIK2tLBV7TC5WaOOrcN5KCXgd3PvHG+pefZ0XBIZlDNRjptHKs2aXUu//8LxuDYZ7NWu0nIHLRlxOB1pHtJApebRScSjKZGLwsFhOBV6C7r/6epB26HUsGy95tNICACBXb0xWmqilhqhGTpTWRalAE6siaoMmJSyNQWIwvU35tjaISwkLC3TAVecMBGmH3kzqY9mQEIDE+jTZbQT5A44S3OZPCXByQBN7h1aWDLxMnqqUyS4GY1KJy/ubjpaqCVrt+QK31qChB3nMNCrOeQAJsZyLFLIAAJVnzS6l1zIzpesFAAjSDj2eD5csq9nanrVWOVcChMo3lcpmSJlAk+qPcr+obEIqsk3vhnCNGDxXnTMAdQAJAVvZtSQ8LZYIu4SNiXtwPh460AcAs/nuzk45UuRu84d1kI5l42LQkB5XnjW7FCf+AfMu74ZwDcpHubJNDJkNw6ZTtrUxRaBdv2jajV3IKEqI2ydqa2r+VMey8f5zvC6fHkdyEZcRNOlokysap0v8Ym9VCrzUW7JVZ7Cwxt6QVErSQmwRlXVsXr3WWYyxPhlocvVHcWg8VhbTi0FrDBLDmR3THdcvmnbnUirkAhpAYolUOvkPv4N87mWpy0ZcrqhpsE3d6L09N8oC4vDorw5PJDyNlw3a1Kf6vd1bQ+2UsqSlRSBtcwzUY6ZRSnWEEMFXedYMuXieEpu4wDx6pjo4cY+wpdds59bGv4P8IO8eh+6OMT2ZNX2/ZeXF3o4HmmjEonE2irqjx1hKiEClFJ4QgSY8L+jLxfOUqiHzZK2q3ppJaEehQrxFR149bm7ZUOjw27UkFWhHPAdDUk9LhDblSj+ObDw+1d9h2PSYg5p6nrSwtpVVFQ2e8mbUU+eiU8OC1XGErFkJkHyzbAlo816BEhPAvYlOOfmsp7XQ5q+OTMhV1O/lPPU9T9zQIw6PSlauarkpW0bgfvR3fz4JALB6Vel9s7ZdXK8tGWgGCuTz48GgEilrZkrX2/fyN/8Mu56UKOoeM41ykUJWTfDEDT1yc1oyy/c+nklZJW5tODI65ku12MFAgey9Q/SECFQuaFOf6vd6N4RrXvvkdKi5GZhsFHWncUZQy/MQNHEfp5yclswwSuULQCYdoxwevrw/1QqVvXeIXomniaf1UZLK9qLVCJs4iChlycafnXoEQZOT0xadVokxemR0zAcM0acCTaw/ygENJxvVnCFOlAosObMj6FOqsGD50Rgkho53u4pcdc6AXCKyKIETa48IYirQEvpjevlITEK4SCGr9gwxIQLlIoVs99ZQu1zPE3t+/MSPjQharlto4MY7+dq/5YECHPXGZIvTlchQmD94YYbRtbOgVdcT5jw5pYJxJf/ImR3B6D3PfyOq1r4n+d5wR/YacGl7uJxQhBOWvk7OiitPce9LtW9ELJNF7ujuJgvXKBD87uC+u/MDVKUFm/neeEeWVom9+44eY2km0DAUAQDgLLNYTddqE7R7RTqNGlfyjyQDrTFIDFqAhvu35HNejpEzkuUq/UhCcLKxf+ADB345w5du/hJrJK1uRgqeOMc6eoyl8bfesaoNGsC9/VvyaWnnkHAhRkJ/TC8ai5UHM6mPSaeFfF2/iAAA/Mevr2sqxIrBAwjXAITB7rZaul6ZmtRVa7OeHTdkm9v7JC+PKyOZckYmT0MSIn4v2VxevuesGoPEUGF8RLjcOkN/8LcCaLkJwaKZj2tuBubQSiZmd1stckATb7nEx3hBCtrI6JgP/wb3CdHyta/xQME3PpiFKt00bWuDOJY2WoC2UPuTPRAqDRRIK7A0IWXNnkhHQjCf6QgbA0g8IC/lB4kWZuThvkJHPAfnf9By1wjJhmx52332gVCZWB50J94wXNCdShURg2Ym9bFMiyw6uNM7h8fHzyXbql66hf3Q+E0e/690a3s8tty+WicA2Va+4Ssva73xQC4PjVANODlNq0it74H23jGtnqax2K2L67XtrK2e7uruseT7GapEiSqCzBGbZ5YzaAvpbfM57n5V5MGew5kpXe+/HF/xHaT7hAh0uT4nFe2n/f+6F3tJ85nb5j0Oe0VSSVnYdo2h8YsnNt6/Thy3Vcw7cPignmS0X6o5alUHLSXD7asWEjQAACZKgEb1xhdSaY4Imli+Wq4m3r5qIUFLKXlh95WY7j//h7/XBcvcxGvZF9oYAADrb8W2i5kj9oKg5qj2s9eWoqehrCVey76QxgIAfL2FdM1M6XpPrIt8deaj2fkJweXOHMW0HwAgeDdmyvezeVJ6nN1ttVy/aNrt3RCuwQ3XUmmOy5E9YnjUagI45wJc7f2Xl7qX/dQ78L3Dh/ZOLPSD2tOSExSKvZ1+585lns+wRgOYX4UTWIzXyfKCwJiYjYIWD4BdSvZv//6ftU+u+1LN+73+/+YFgQnejZm+1/SXi1Zo0OVrs+zFGhKx6Rff6+uLGHQsG4UFkLEU57jlUliPjI75hoavzLAQb5Gq+am2pl+s9v/fpubKU/grsAAAAABJRU5ErkJggg==" alt="BetLedger" style="width:100%;height:100%;object-fit:contain;display:block"></div>
+      <div class="brandtxt"><b>Bet<span style="color:var(--accent)">Ledger</span></b>registro scommesse</div>
+    </div>
+
+    <div class="hero">
+      <div>
+        <div class="lab">Saldo complessivo</div>
+        <div class="big num" id="h-bankroll">€ 0,00</div>
+      </div>
+      <div class="pl-pill"><span class="cap">P/L totale</span><span class="num" id="h-pl">€ 0,00</span></div>
+      <div class="pl-pill"><span class="cap">Disponibile</span><span class="num" id="h-avail" style="color:var(--muted)">€ 0,00</span></div>
+    </div>
+    <div class="subline">
+      <span id="h-capital-wrap">Capitale immesso <span class="num" id="h-capital">€ 0,00</span></span>
+      <span id="h-reserve-wrap" style="display:none">Riserva <span class="num" id="h-reserve">€ 0,00</span></span>
+      <span>Esposizione aperta <span class="num" id="h-exposure">€ 0,00</span></span>
+      <span>Giocate <span class="num" id="h-count">0</span></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="overview">Panoramica</button>
+    <button class="tab" data-tab="bets">Giocate</button>
+    <button class="tab" data-tab="moves">Movimenti</button>
+    <button class="tab" data-tab="books">Bookmaker</button>
+    <button class="tab" data-tab="notes">Note</button>
+    <button class="tab" data-tab="stats">Statistiche</button>
+    <button class="tab" data-tab="budget">Budget & Dati</button>
+    <button class="tab" data-tab="exchange">Exchange</button>
+  </nav>
+
+  <!-- ===== OVERVIEW ===== -->
+  <section class="panel active" id="p-overview">
+    <div id="over-alert"></div>
+    <div id="quick-settle"></div>
+    <div class="kpi-grid grid" id="kpis"></div>
+    <div id="recovery-card"></div>
+    <div class="card card-pad" style="margin-bottom:14px">
+      <div class="chart-head">
+        <span class="sec-title">Andamento del bankroll</span>
+        <span class="sec-title num" id="chart-range" style="color:var(--muted-2)"></span>
+      </div>
+      <div class="chartwrap">
+        <canvas id="equity" height="240"></canvas>
+        <div class="chart-tip" id="tip"></div>
+      </div>
+    </div>
+    <div class="card card-pad">
+      <div class="chart-head" style="margin-bottom:12px"><span class="sec-title">Ripartizione per bookmaker</span></div>
+      <div id="bk-breakdown"></div>
+    </div>
+  </section>
+
+  <!-- ===== BETS ===== -->
+  <section class="panel" id="p-bets">
+    <div class="slip">
+      <h3 id="bet-form-title">Nuova giocata</h3>
+      <div class="fields">
+        <div class="field"><label>Data</label><input type="date" id="b-date"></div>
+        <div class="field"><label>Bookmaker</label><select id="b-book"></select></div>
+        <div class="field"><label>Tipo giocata</label>
+          <select id="b-type">
+            <option>Singola</option><option>Doppia</option><option>Tris</option><option>Sistema</option>
+            <option>Live</option><option>Antepost</option><option>Marcatore</option><option>Player Builder</option>
+            <option>Quota maggiorata</option><option>MyCombo</option><option>Metodo 100%</option>
+          </select></div>
+        <div class="field"><label>Sport</label>
+          <select id="b-sport">
+            <option>Calcio</option><option>Basket</option><option>Pallavolo</option><option>Misto</option><option>Altro</option>
+          </select></div>
+        <div class="field wide"><label>Evento / descrizione</label><input type="text" id="b-desc" placeholder="es. Inter–Milan · Over 2.5"></div>
+        <div class="field"><label>Competizione</label><input type="text" id="b-comp" list="comp-list" placeholder="es. Serie A"><span class="hint">facoltativa, serve per l'analisi</span><datalist id="comp-list"></datalist></div>
+        <div class="field"><label>Puntata (€)</label><input type="text" inputmode="decimal" id="b-stake" placeholder="10,00"><span class="hint" id="b-stake-hint"></span></div>
+        <div class="field"><label>Quota</label><input type="text" inputmode="decimal" id="b-odds" placeholder="1,85"></div>
+        <div class="field"><label>Vincita potenziale (€)</label><input type="text" inputmode="decimal" id="b-payout" placeholder="auto"><span class="hint" id="b-payout-hint">calcolata da puntata × quota — modificala se c'è un bonus</span></div>
+        <div class="field"><label>Esito</label>
+          <select id="b-status">
+            <option value="pending">In corso</option>
+            <option value="won">Vinta</option>
+            <option value="lost">Persa</option>
+            <option value="void">Void / rimborsata</option>
+            <option value="cashout">Cashout</option>
+          </select></div>
+        <div class="field" id="cashout-field" style="display:none"><label>Incasso reale (€)</label><input type="text" inputmode="decimal" id="b-return" placeholder="0,00"><span class="hint">quanto hai ritirato</span></div>
+        <div class="field wide">
+          <label class="checkrow" id="b-bonus-row">
+            <input type="checkbox" id="b-bonus">
+            <span class="cl">Giocata con bonus / free bet<small>Non intacca il capitale: se perde il tuo saldo non cala, esclusa da yield e volume</small></span>
+          </label>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="b-save">Aggiungi giocata</button>
+        <button class="btn ghost" id="b-cancel" style="display:none">Annulla modifica</button>
+        <span class="hint" id="b-preview"></span>
+      </div>
+    </div>
+
+    <div class="filters">
+      <span class="fl-lab">Filtra</span>
+      <select id="f-book"><option value="">Tutti i bookmaker</option></select>
+      <select id="f-status">
+        <option value="">Tutti gli esiti</option>
+        <option value="pending">In corso</option><option value="won">Vinte</option>
+        <option value="lost">Perse</option><option value="void">Void</option><option value="cashout">Cashout</option>
+      </select>
+    </div>
+
+    <div class="card"><div class="tbl-scroll"><table id="bets-table">
+      <thead><tr>
+        <th class="l">Data</th><th class="l">Evento</th><th class="l">Book</th><th class="l">Tipo</th><th class="l">Sport</th>
+        <th>Punt.</th><th>Quota</th><th>Esito</th><th>P/L</th><th></th>
+      </tr></thead>
+      <tbody id="bets-body"></tbody>
+    </table></div></div>
+    <div id="bets-empty"></div>
+  </section>
+
+  <!-- ===== MOVES ===== -->
+  <section class="panel" id="p-moves">
+    <div class="slip">
+      <h3>Versamento / prelievo</h3>
+      <div class="fields">
+        <div class="field"><label>Data</label><input type="date" id="m-date"></div>
+        <div class="field"><label>Bookmaker</label><select id="m-book"></select></div>
+        <div class="field"><label>Tipo</label>
+          <select id="m-type"><option value="deposit">Versamento</option><option value="withdrawal">Prelievo</option></select></div>
+        <div class="field"><label>Importo (€)</label><input type="text" inputmode="decimal" id="m-amount" placeholder="50,00"></div>
+        <div class="field wide"><label>Nota (facoltativa)</label><input type="text" id="m-note" placeholder="es. bonus benvenuto"></div>
+      </div>
+      <div class="btn-row"><button class="btn" id="m-save">Registra movimento</button></div>
+    </div>
+    <div class="filters">
+      <span class="fl-lab">Filtra</span>
+      <select id="fm-book"><option value="">Tutti i bookmaker</option></select>
+      <select id="fm-type">
+        <option value="">Versamenti e prelievi</option>
+        <option value="deposit">Solo versamenti</option>
+        <option value="withdrawal">Solo prelievi</option>
+      </select>
+      <select id="fm-year"><option value="">Tutti gli anni</option></select>
+    </div>
+    <div id="moves-summary" class="grid kpi-grid" style="margin-bottom:14px"></div>
+    <div class="card"><div class="tbl-scroll"><table>
+      <thead><tr><th class="l">Data</th><th class="l">Bookmaker</th><th class="l">Tipo</th><th class="l">Nota</th><th>Importo</th><th></th></tr></thead>
+      <tbody id="moves-body"></tbody>
+    </table></div></div>
+    <div id="moves-empty"></div>
+  </section>
+
+  <!-- ===== BOOKS ===== -->
+  <section class="panel" id="p-books">
+    <div class="slip">
+      <h3 id="book-form-title">Aggiungi bookmaker</h3>
+      <div class="fields">
+        <div class="field wide"><label>Nome app / sito</label><input type="text" id="k-name" placeholder="es. Sisal, Bet365, Snai…"></div>
+        <div class="field"><label>Soldi da caricare (€)</label><input type="text" inputmode="decimal" id="k-init" placeholder="0,00"><span class="hint">verrà registrato come Versamento</span></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="k-save">Aggiungi</button>
+        <button class="btn ghost" id="k-cancel" style="display:none">Annulla</button>
+      </div>
+      <p style="padding-left:8px;margin-top:14px;color:var(--muted);font-size:11.5px;line-height:1.55;max-width:560px">
+        L'importo che indichi qui viene registrato automaticamente come <b style="color:var(--text)">Versamento</b> nella scheda Movimenti, datato oggi: così bookmaker, riserva e budget annuale raccontano sempre la stessa storia. Per i soldi che aggiungi in seguito usa direttamente <b style="color:var(--text)">Movimenti → Versamento</b>.
+      </p>
+    </div>
+    <div class="bk-list" id="bk-cards"></div>
+    <div id="books-empty"></div>
+  </section>
+
+  <!-- ===== NOTE ===== -->
+  <section class="panel" id="p-notes">
+    <div class="slip">
+      <h3 id="note-form-title">Nuova nota</h3>
+      <div class="fields">
+        <div class="field" style="flex:1 1 100%"><label>Testo</label><textarea id="n-text" rows="3" placeholder="Es. Domenica: Inter-Milan, over 2.5 se quota sopra 1,90 — controllare infortuni giovedì"></textarea></div>
+      </div>
+      <div class="fields">
+        <div class="field"><label>Categoria</label><select id="n-cat">
+          <option value="todo">Giocata da fare</option>
+          <option value="idea">Idea / strategia</option>
+          <option value="promo">Bonus / promo</option>
+          <option value="nota">Appunto libero</option>
+        </select></div>
+        <div class="field"><label>Bookmaker (facoltativo)</label><select id="n-book"><option value="">—</option></select></div>
+        <div class="field"><label>Scadenza (facoltativa)</label><input type="date" id="n-due"><span class="hint">per le giocate con una data</span></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="n-save">Aggiungi nota</button>
+        <button class="btn ghost" id="n-cancel" style="display:none">Annulla</button>
+      </div>
+    </div>
+
+    <div class="filters" id="n-filters">
+      <button class="fbtn active" data-nf="open">Da fare</button>
+      <button class="fbtn" data-nf="all">Tutte</button>
+      <button class="fbtn" data-nf="todo">Giocate</button>
+      <button class="fbtn" data-nf="idea">Idee</button>
+      <button class="fbtn" data-nf="promo">Promo</button>
+      <button class="fbtn" data-nf="done">Archiviate</button>
+    </div>
+
+    <div class="note-list" id="note-list"></div>
+    <div id="notes-empty"></div>
+  </section>
+
+  <!-- ===== STATS ===== -->
+  <section class="panel" id="p-stats">
+    <div class="kpi-grid grid" id="stats-kpis"></div>
+    <div class="chart-head" style="margin:6px 0 8px"><span class="sec-title">Per tipo di giocata</span></div>
+    <div class="card" style="margin-bottom:8px"><div class="tbl-scroll"><table>
+      <thead><tr><th class="l">Tipo</th><th>Schedine</th><th>Giocato</th><th>% vinte</th><th>P/L</th></tr></thead>
+      <tbody id="stats-type"></tbody>
+    </table></div></div>
+    <div id="stats-type-empty"></div>
+    <div class="chart-head" style="margin:18px 0 8px"><span class="sec-title">Per competizione</span></div>
+    <div class="card" style="margin-bottom:8px"><div class="tbl-scroll"><table>
+      <thead><tr><th class="l">Competizione</th><th>Schedine</th><th>Giocato</th><th>% vinte</th><th>Quota media</th><th>Yield</th><th>P/L</th></tr></thead>
+      <tbody id="stats-comp"></tbody>
+    </table></div></div>
+    <div id="stats-comp-empty"></div>
+    <div class="chart-head" style="margin:18px 0 8px"><span class="sec-title">Per mese</span></div>
+    <div class="card"><div class="tbl-scroll"><table>
+      <thead><tr><th class="l">Mese</th><th>Schedine</th><th>Giocato</th><th>P/L</th></tr></thead>
+      <tbody id="stats-month"></tbody>
+    </table></div></div>
+    <div id="stats-month-empty"></div>
+
+    <div class="chart-head" style="margin:22px 0 10px">
+      <span class="sec-title">Report del mese</span>
+      <select id="mr-month" style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px"></select>
+    </div>
+    <div id="mr-body"></div>
+  </section>
+
+  <!-- ===== BUDGET ===== -->
+  <section class="panel" id="p-budget">
+    <div class="card card-pad" style="margin-bottom:14px">
+      <div class="chart-head" style="margin-bottom:14px"><span class="sec-title">Capitale di gioco</span></div>
+      <div class="field" style="max-width:260px;margin-bottom:6px">
+        <label>Capitale fisso di partenza (€)</label>
+        <input type="text" inputmode="decimal" id="cap-pool" placeholder="es. 1000,00">
+        <span class="hint">il tuo “banco” — lascia vuoto per non usarlo</span>
+      </div>
+      <p style="color:var(--muted);font-size:11.5px;line-height:1.55;max-width:620px;margin-top:10px">
+        Impostandolo, questo diventa il tuo capitale fisso: il <b style="color:var(--text)">bankroll parte da qui</b> e cresce solo con le vincite, il <b style="color:var(--text)">ROI si calcola su questa cifra</b>, e ogni versamento viene trattato come <b style="color:var(--text)">impiego del tuo capitale</b> (sposti dalla riserva ai bookmaker) invece che come denaro nuovo. Se depositi in totale più del capitale, la riserva va in rosso.
+      </p>
+    </div>
+    <div class="card card-pad" style="margin-bottom:14px">
+      <div class="chart-head" style="margin-bottom:10px"><span class="sec-title">Sincronizza tra dispositivi</span><span id="sync-when" class="sec-title" style="color:var(--muted-2)"></span></div>
+      <div id="sync-body"></div>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom:14px">
+      <div class="chart-head" style="margin-bottom:12px"><span class="sec-title">Verifica del capitale impiegato</span></div>
+      <div id="cap-check"></div>
+    </div>
+
+    <div class="two-col">
+      <div class="card card-pad">
+        <div class="chart-head" style="margin-bottom:14px"><span class="sec-title">Budget annuale</span><span class="sec-title num" id="year-lab" style="color:var(--accent)"></span></div>
+        <div class="field" style="max-width:220px;margin-bottom:18px">
+          <label>Tetto di capitale per l'anno (€)</label>
+          <input type="text" inputmode="decimal" id="bud-limit" placeholder="es. 500,00">
+          <span class="hint">quanto sei disposto a impiegare in un anno</span>
+        </div>
+        <div id="budget-body"></div>
+      </div>
+      <div class="card card-pad">
+        <div class="chart-head" style="margin-bottom:14px"><span class="sec-title">Riepilogo dell'anno</span></div>
+        <div id="year-stats"></div>
+      </div>
+    </div>
+    <div class="foot">
+      <button id="exp">Esporta dati (.json)</button>
+      <button id="imp">Importa dati</button>
+      <button id="reset" class="danger">Azzera (tranne Exchange)</button>
+      <button id="reset-all" class="danger">Azzera tutto</button>
+      <input type="file" id="impfile" accept="application/json" style="display:none">
+    </div>
+    <p style="text-align:center;color:var(--muted-2);font-size:11px;margin-top:14px;line-height:1.6">
+      BetLedger · I dati si salvano nell'archivio dell'app. Non dare per scontato che si sincronizzino tra dispositivi diversi: se usi telefono e PC, verifica con una giocata di prova, e nel dubbio usa Esporta/Importa.<br>
+      Le metriche (Sharpe, Kelly, ecc.) sono indicatori statistici sul tuo storico, non consigli di gioco. Gioca responsabilmente.
+    </p>
+  </section>
+
+  <!-- ===== EXCHANGE (Betfair) ===== -->
+  <section class="panel" id="p-exchange">
+    <div class="slip">
+      <h3>Impostazioni conto Exchange</h3>
+      <div class="fields">
+        <div class="field"><label>Capitale di partenza (€)</label><input type="text" inputmode="decimal" id="ex-capital" placeholder="es. 500,00"><span class="hint">con quanti soldi parti</span></div>
+        <div class="field"><label>Data di inizio</label><input type="date" id="ex-start"><span class="hint">facoltativa</span></div>
+        <div class="field"><label>Numero di unità</label><input type="text" inputmode="decimal" id="ex-units" placeholder="es. 100"><span class="hint">in quante unità dividi il banco</span></div>
+        <div class="field"><label>Stake di partenza (€)</label><input type="text" inputmode="decimal" id="ex-stake" placeholder="es. 5,00"><span class="hint" id="ex-stake-hint">la tua unità iniziale</span></div>
+      </div>
+      <div class="btn-row"><button class="btn" id="ex-save">Salva impostazioni</button></div>
+      <p style="padding-left:8px;margin-top:14px;color:var(--muted);font-size:11.5px;line-height:1.55;max-width:560px">
+        Questo conto è <b style="color:var(--text)">separato dal resto dell'app</b>: niente movimenti singoli, solo il punto di partenza e una fotografia del saldo a inizio mese. Da lì l'app calcola P/L, ROI e il valore attuale dell'unità.
+      </p>
+    </div>
+
+    <div class="kpi-grid grid" id="ex-kpis" style="margin-bottom:14px"></div>
+
+    <div class="card card-pad" style="margin-bottom:16px" id="ex-chart-card">
+      <div class="chart-head" style="margin-bottom:2px"><span class="sec-title">Andamento del conto Exchange</span></div>
+      <div class="chartwrap"><canvas id="ex-chart" height="200"></canvas></div>
+    </div>
+
+    <div class="slip">
+      <h3>Saldo a inizio mese</h3>
+      <div class="fields">
+        <div class="field"><label>Mese</label><input type="month" id="ex-month"></div>
+        <div class="field"><label>Saldo a inizio mese (€)</label><input type="text" inputmode="decimal" id="ex-bal" placeholder="es. 540,00"></div>
+      </div>
+      <div class="btn-row"><button class="btn" id="ex-snap-save">Registra saldo</button><span class="hint">se il mese esiste già, viene aggiornato</span></div>
+    </div>
+
+    <div class="card"><div class="tbl-scroll"><table>
+      <thead><tr><th class="l">Mese</th><th>Saldo</th><th>Δ mese</th><th>Δ %</th><th>Valore unità</th><th></th></tr></thead>
+      <tbody id="ex-body"></tbody>
+    </table></div></div>
+    <div id="ex-empty"></div>
+  </section>
+
+</div>
+
+<div id="install-bar">
+  <div class="ib-txt" id="ib-txt"></div>
+  <button class="btn" id="ib-btn">Installa</button>
+  <button class="ib-close" id="ib-close" aria-label="Chiudi">✕</button>
+</div>
+
+<div id="toast"></div>
+
+<div id="book-detail">
+  <div class="bd-inner">
+    <div class="bd-head">
+      <div>
+        <div class="bd-sub">Bookmaker</div>
+        <div class="bd-name" id="bd-name"></div>
+        <div class="bd-bal num" id="bd-bal"></div>
+      </div>
+      <button class="btn ghost" id="bd-close">Chiudi ✕</button>
+    </div>
+    <div class="kpi-grid grid" id="bd-kpis"></div>
+    <div class="card card-pad" style="margin:4px 0 16px">
+      <div class="chart-head" style="margin-bottom:2px"><span class="sec-title">Andamento del saldo</span></div>
+      <div class="chartwrap"><canvas id="bd-chart" height="200"></canvas></div>
+    </div>
+    <div class="chart-head" style="margin:0 0 8px"><span class="sec-title">Giocate del book</span></div>
+    <div class="card" style="margin-bottom:8px"><div class="tbl-scroll"><table>
+      <thead><tr><th class="l">Data</th><th class="l">Evento</th><th class="l">Tipo</th><th>Punt.</th><th>Quota</th><th>Esito</th><th>P/L</th></tr></thead>
+      <tbody id="bd-bets"></tbody>
+    </table></div></div>
+    <div id="bd-bets-empty"></div>
+    <div class="chart-head" style="margin:18px 0 8px"><span class="sec-title">Movimenti del book</span></div>
+    <div class="card"><div class="tbl-scroll"><table>
+      <thead><tr><th class="l">Data</th><th class="l">Tipo</th><th class="l">Nota</th><th>Importo</th></tr></thead>
+      <tbody id="bd-moves"></tbody>
+    </table></div></div>
+    <div id="bd-moves-empty"></div>
+  </div>
+</div>
+
+<div id="kpi-overlay">
+  <div class="kpi-box">
+    <div class="kb-head">
+      <div>
+        <div class="kb-t">Cosa sto guardando</div>
+        <div class="kb-n" id="kb-name"></div>
+        <div class="kb-v num" id="kb-val"></div>
+      </div>
+      <button class="kb-x" id="kb-close" aria-label="Chiudi">✕</button>
+    </div>
+    <div class="kb-body" id="kb-body"></div>
+  </div>
+</div>
+
+<div id="cashout-overlay" style="position:fixed;inset:0;background:rgba(0,6,16,.72);display:none;align-items:center;justify-content:center;z-index:125;padding:20px">
+  <div class="confirm-box">
+    <p id="cashout-msg" style="margin-bottom:14px"></p>
+    <div class="field" style="margin-bottom:16px">
+      <label>Importo incassato col cashout (€)</label>
+      <input type="text" inputmode="decimal" id="cashout-amt" placeholder="0,00" style="font-size:16px">
+      <span class="hint" id="cashout-hint"></span>
+    </div>
+    <div class="confirm-actions">
+      <button class="btn ghost" id="cashout-cancel">Annulla</button>
+      <button class="btn" id="cashout-ok">Registra cashout</button>
+    </div>
+  </div>
+</div>
+
+<div id="confirm-overlay">
+  <div class="confirm-box">
+    <p id="confirm-msg"></p>
+    <div class="confirm-actions">
+      <button class="btn ghost" id="confirm-no">Annulla</button>
+      <button class="btn" id="confirm-yes" style="background:var(--loss);color:#fff">Elimina</button>
+    </div>
+  </div>
+</div>
+
+<script>window.__cloudSyncReady = new Promise(resolve => { window.__cloudSyncResolve = resolve; });</script>
+<script src="firebase-config.js"></script>
+<script type="module" src="firebase-sync.js"></script>
+
+<script>
+/* ============================================================
+   STATE + STORAGE
+============================================================ */
+const KEY='bankroll_state_v1';
+let storageMode='volatile'; // 'cloud' | 'local' | 'volatile'
+let S={settings:{annualLimit:null,capital:null},books:[],moves:[],bets:[]};
+let cloudAPI=null, cloudUser=null, cloudUnsub=null, cloudConfigured=false, cloudSaveTimer=null;
+
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const todayISO=()=>new Date().toISOString().slice(0,10);
+const num=v=>{if(typeof v==='number')return v;if(!v)return 0;const n=parseFloat(String(v).replace(/\s/g,'').replace(',','.'));return isNaN(n)?0:n;};
+const eur=n=>'€ '+(n<0?'-':'')+Math.abs(n).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct=n=>(n>=0?'':'')+n.toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+const signCls=n=>n>0?'gain':(n<0?'loss':'');
+const escapeHtml=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function localOK(){try{const k='__bk_test';localStorage.setItem(k,'1');localStorage.removeItem(k);return true;}catch(e){return false;}}
+
+async function load(){
+  // local-first: rendering non aspetta la rete
+  if(localOK()){
+    storageMode='local';
+    try{const v=localStorage.getItem(KEY);if(v)S=JSON.parse(v);}catch(e){}
+  }else{
+    storageMode='volatile';
+  }
+  loadState(S);
+
+  // poi, se configurato, agganciamo la sincronizzazione cloud (Firebase)
+  try{
+    cloudAPI=await Promise.race([
+      window.__cloudSyncReady,
+      new Promise(res=>setTimeout(()=>res({configured:false}),6000))
+    ]);
+  }catch(e){cloudAPI={configured:false};}
+  cloudConfigured=!!(cloudAPI&&cloudAPI.configured);
+  if(!cloudConfigured)return;
+
+  await new Promise(resolve=>{
+    let settled=false;
+    cloudAPI.onAuth(async user=>{
+      cloudUser=user;
+      if(user){
+        storageMode='cloud';
+        await pullFromCloud();
+        startCloudListener();
+      }else if(cloudUnsub){
+        cloudUnsub();cloudUnsub=null;
+        storageMode=localOK()?'local':'volatile';
+      }
+      if(document.getElementById('sync-body'))renderSync();
+      if(!settled){settled=true;resolve();}
+    });
+  });
+}
+async function pullFromCloud(){
+  try{
+    const remote=await cloudAPI.fetchDoc(cloudUser.uid);
+    if(remote){
+      const parsed=JSON.parse(remote);
+      const incUpd=parsed.meta&&parsed.meta.updated?new Date(parsed.meta.updated):null;
+      const curUpd=S.meta&&S.meta.updated?new Date(S.meta.updated):null;
+      if(!curUpd||(incUpd&&incUpd>curUpd)){loadState(parsed);try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+      else if(incUpd&&curUpd&&incUpd<curUpd){await save();}
+    }else{
+      await save(); // nessun documento cloud ancora: lo creiamo con i dati locali
+    }
+  }catch(e){toast('Impossibile leggere i dati cloud — uso quelli salvati su questo dispositivo',true);}
+}
+function startCloudListener(){
+  if(cloudUnsub)cloudUnsub();
+  cloudUnsub=cloudAPI.subscribeDoc(cloudUser.uid,remoteJson=>{
+    try{
+      const parsed=JSON.parse(remoteJson);
+      const incUpd=parsed.meta&&parsed.meta.updated;
+      const curUpd=S.meta&&S.meta.updated;
+      if(incUpd&&curUpd&&incUpd===curUpd)return; // eco del nostro stesso salvataggio
+      if(incUpd&&curUpd&&new Date(incUpd)<=new Date(curUpd))return;
+      loadState(parsed);
+      try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}
+      refreshInputs();renderAll();
+      toast('Aggiornato da '+(parsed.meta&&parsed.meta.device?parsed.meta.device:'un altro dispositivo'));
+    }catch(e){}
+  });
+}
+function deviceTag(){
+  const ua=navigator.userAgent||'';
+  if(/iPhone|iPod/.test(ua))return 'iPhone';
+  if(/iPad/.test(ua))return 'iPad';
+  if(/Android/.test(ua))return 'Android';
+  if(/Mac/.test(ua))return 'Mac';
+  if(/Windows/.test(ua))return 'PC';
+  return 'dispositivo';
+}
+async function save(){
+  S.meta={updated:new Date().toISOString(),device:deviceTag()};
+  const json=JSON.stringify(S);
+  if(storageMode!=='volatile'){
+    try{localStorage.setItem(KEY,json);}
+    catch(e){storageMode='volatile';toast('Salvataggio non riuscito — i dati restano solo in questa sessione',true);}
+  }
+  if(storageMode==='cloud'&&cloudUser){
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer=setTimeout(async()=>{
+      try{await cloudAPI.writeDoc(cloudUser.uid,json);}
+      catch(e){toast('Sync cloud non riuscita — riprovo al prossimo salvataggio',true);}
+    },700);
+  }
+}
+async function cloudSignIn(email,pass){
+  try{await cloudAPI.signIn(email,pass);toast('Accesso effettuato');}
+  catch(e){toast(cloudErrMsg(e),true);}
+}
+async function cloudSignUp(email,pass){
+  try{await cloudAPI.signUp(email,pass);toast('Account creato — accesso effettuato');}
+  catch(e){toast(cloudErrMsg(e),true);}
+}
+async function cloudSignOut(){
+  if(cloudUnsub){cloudUnsub();cloudUnsub=null;}
+  try{await cloudAPI.signOutUser();}catch(e){}
+  cloudUser=null;
+  storageMode=localOK()?'local':'volatile';
+  renderSync();
+  toast('Disconnesso — i dati restano su questo dispositivo');
+}
+async function cloudResetPassword(email){
+  try{await cloudAPI.resetPassword(email);toast('Email per reimpostare la password inviata');}
+  catch(e){toast(cloudErrMsg(e),true);}
+}
+function cloudErrMsg(e){
+  const c=(e&&e.code)||'';
+  const map={
+    'auth/email-already-in-use':'Questa email ha già un account — usa Accedi',
+    'auth/invalid-email':'Email non valida',
+    'auth/weak-password':'Password troppo corta (minimo 6 caratteri)',
+    'auth/wrong-password':'Password errata',
+    'auth/user-not-found':'Nessun account con questa email — usa Crea account',
+    'auth/invalid-credential':'Email o password errati',
+    'auth/too-many-requests':'Troppi tentativi — riprova tra poco'
+  };
+  return map[c]||('Errore: '+((e&&e.message)||'riprova'));
+}
+
+/* ============================================================
+   METRICS
+============================================================ */
+function bookName(id){const b=S.books.find(x=>x.id===id);return b?b.name:'—';}
+
+function betProfit(b){
+  const s=num(b.stake),o=num(b.odds);
+  // payout personalizzato (es. con bonus del book): se presente, è la vincita TOTALE
+  const hasCustom=b.payout!==undefined&&b.payout!==null&&b.payout!=='';
+  const customWin=hasCustom?num(b.payout)-s:null;      // profitto = incasso totale − puntata
+  const normalWin=s*(o-1);
+  const winProfit=hasCustom?customWin:normalWin;
+  if(b.bonus){ // bonus/free bet: never risks own capital
+    if(b.status==='won')return hasCustom?num(b.payout):normalWin; // free bet: l'incasso è già solo profitto; se custom, è il valore indicato
+    if(b.status==='cashout')return num(b.ret);
+    return 0; // lost / void / pending
+  }
+  if(b.status==='won')return winProfit;
+  if(b.status==='lost')return -s;
+  if(b.status==='void')return 0;
+  if(b.status==='cashout')return num(b.ret)-s;
+  return 0; // pending
+}
+const isSettled=b=>b.status!=='pending';
+
+function bookBalance(id){
+  let v=0;const bk=S.books.find(x=>x.id===id);if(bk)v+=num(bk.init);
+  S.moves.filter(m=>m.book===id).forEach(m=>v+=(m.type==='deposit'?1:-1)*num(m.amount));
+  S.bets.filter(b=>b.book===id&&isSettled(b)).forEach(b=>v+=betProfit(b));
+  return v;
+}
+
+function computeMetrics(){
+  const deposits=S.moves.filter(m=>m.type==='deposit').reduce((a,m)=>a+num(m.amount),0);
+  const withdrawals=S.moves.filter(m=>m.type==='withdrawal').reduce((a,m)=>a+num(m.amount),0);
+  const netDeposits=deposits-withdrawals;
+  const netDeployed=S.books.reduce((a,b)=>a+num(b.init),0)+netDeposits;
+  const pool=num(S.settings.capital);
+  const poolMode=pool>0;
+  const capital=poolMode?pool:netDeployed;   // ROI base
+  const reserve=poolMode?pool-netDeployed:null; // capitale non ancora in gioco
+  const settled=S.bets.filter(isSettled);
+  const pending=S.bets.filter(b=>b.status==='pending');
+  const realized=settled.reduce((a,b)=>a+betProfit(b),0);
+  const exposure=pending.filter(b=>!b.bonus).reduce((a,b)=>a+num(b.stake),0);
+  const bankroll=capital+realized;
+
+  // "own money" figures exclude bonus bets (they don't risk your capital)
+  const ownSettled=settled.filter(b=>!b.bonus);
+  const turnover=ownSettled.reduce((a,b)=>a+num(b.stake),0);
+  const realizedOwn=ownSettled.reduce((a,b)=>a+betProfit(b),0);
+  const nBonus=S.bets.filter(b=>b.bonus).length;
+
+  const won=settled.filter(b=>b.status==='won');
+  const lost=settled.filter(b=>b.status==='lost');
+  const decided=won.length+lost.length;
+  const winRate=decided?won.length/decided*100:0;
+
+  const yield_=turnover?realizedOwn/turnover*100:0;
+  const roi=capital>0?realized/capital*100:0;
+  const avgStake=ownSettled.length?turnover/ownSettled.length:0;
+  const oddsArr=S.bets.map(b=>num(b.odds)).filter(o=>o>0);
+  const avgOdds=oddsArr.length?oddsArr.reduce((a,b)=>a+b,0)/oddsArr.length:0;
+
+  // per-bet ROI series for Sharpe (own money only)
+  const rets=ownSettled.filter(b=>num(b.stake)>0).map(b=>betProfit(b)/num(b.stake));
+  let sharpe=null;
+  if(rets.length>=2){
+    const m=rets.reduce((a,b)=>a+b,0)/rets.length;
+    const sd=Math.sqrt(rets.reduce((a,b)=>a+(b-m)**2,0)/(rets.length-1));
+    sharpe=sd>0?m/sd:null;
+  }
+  // Kelly from history: f* = (b*p - q)/b (own money only)
+  const ownWon=ownSettled.filter(b=>b.status==='won'),ownLost=ownSettled.filter(b=>b.status==='lost');
+  const ownDecided=ownWon.length+ownLost.length;
+  let kelly=null;
+  if(ownDecided>=5){
+    const p=ownWon.length/ownDecided;
+    const bnet=ownWon.concat(ownLost).map(x=>num(x.odds)-1).filter(x=>x>0);
+    const b=bnet.length?bnet.reduce((a,c)=>a+c,0)/bnet.length:0;
+    if(b>0){kelly=Math.max(0,(b*p-(1-p))/b)*100;}
+  }
+
+  // equity curve + drawdown
+  const events=[];
+  if(!poolMode){ // legacy: deposits/withdrawals change total bankroll
+    S.moves.forEach(m=>events.push({date:m.date,delta:(m.type==='deposit'?1:-1)*num(m.amount)}));
+  }
+  settled.forEach(b=>events.push({date:b.date,delta:betProfit(b)}));
+  events.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const startBase=poolMode?pool:S.books.reduce((a,b)=>a+num(b.init),0);
+  const curve=[{label:'inizio',v:startBase}];
+  let run=startBase;
+  events.forEach(e=>{run+=e.delta;curve.push({label:e.date,v:run});});
+  let peak=-Infinity,maxDD=0;
+  curve.forEach(p=>{if(p.v>peak)peak=p.v;const dd=peak-p.v;if(dd>maxDD)maxDD=dd;});
+
+  // streak (settled decided, chronological)
+  const chrono=won.concat(lost).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  let cur=0,curType=null,bestWin=0,bestLoss=0,rw=0,rl=0;
+  chrono.forEach(b=>{const w=b.status==='won';
+    if(curType===null||curType===w){cur++;curType=w;}else{cur=1;curType=w;}
+    if(w){rw++;rl=0;}else{rl++;rw=0;}
+    if(rw>bestWin)bestWin=rw;if(rl>bestLoss)bestLoss=rl;
+  });
+  const streakTxt=chrono.length?(cur+(curType?'V':'P')):'—';
+  const bestStreakTxt=bestWin?bestWin+'V':'—';
+
+  const overflow=(poolMode&&reserve<0)?-reserve:0;
+  // Obiettivo di recupero: i soldi caricati sui book restano tuoi (li puoi riprelevare).
+  // Da recuperare c'è solo quello che le giocate hanno effettivamente bruciato
+  // rispetto al punto di partenza (banco, o capitale immesso se non usi il banco).
+  const deficit=Math.max(0,-realized);      // quanto ti serve rivincere per tornare al punto di partenza
+  const surplus=Math.max(0,realized);       // profitto reale oltre il punto di partenza
+  const toRecover=deficit;
+  const stillToRecover=deficit;
+  const recovered=0;
+  const worstPoint=curve.length?Math.min(...curve.map(p=>p.v)):capital;   // minimo storico del bankroll
+  const lostAtWorst=Math.max(0,capital-worstPoint);                        // buca massima rispetto al via
+  const clawedBack=lostAtWorst>0?Math.max(0,bankroll-worstPoint):0;        // quanto hai risalito dal fondo
+  return {capital,reserve,poolMode,netDeployed,overflow,nBonus,deposits,withdrawals,netDeposits,
+    toRecover,recovered,stillToRecover,surplus,deficit,worstPoint,lostAtWorst,clawedBack,bestStreakTxt,bestWin,bestLoss,
+    realized,exposure,bankroll,available:bankroll-exposure,turnover,
+    winRate,yield_,roi,avgStake,avgOdds,sharpe,kelly,maxDD,curve,streakTxt,
+    nBets:S.bets.length,nSettled:settled.length,nPending:pending.length,nWon:won.length,nLost:lost.length,
+    nVoid:settled.filter(b=>b.status==='void').length};
+}
+
+/* ============================================================
+   RENDER
+============================================================ */
+function renderHeader(M){
+  document.getElementById('h-bankroll').textContent=eur(M.bankroll);
+  const pl=document.getElementById('h-pl');pl.textContent=(M.realized>=0?'+':'')+eur(M.realized).replace('€ ','€ ');pl.className='num '+signCls(M.realized);
+  document.getElementById('h-avail').textContent=eur(M.available);
+  document.getElementById('h-capital').textContent=eur(M.capital);
+  document.getElementById('h-capital-wrap').firstChild.textContent=M.poolMode?'Capitale di gioco ':'Capitale immesso ';
+  const rw=document.getElementById('h-reserve-wrap');
+  if(M.poolMode){
+    rw.style.display='';
+    const r=document.getElementById('h-reserve');
+    r.textContent=eur(M.reserve);
+    r.className='num '+(M.reserve<0?'loss':'');
+    rw.title=M.reserve<0?'Hai in gioco più del capitale che ti sei dato: stai attingendo oltre i tuoi €'+M.capital:'Capitale non ancora depositato nei bookmaker';
+  }else{rw.style.display='none';}
+  document.getElementById('h-exposure').textContent=eur(M.exposure);
+  document.getElementById('h-count').textContent=M.nBets;
+}
+
+function kpi(lab,val,sub,cls,tip,key){
+  return `<div class="kpi ${cls||''} ${key?'clk':''}" ${key?`data-kpi="${key}"`:''}><div class="accentbar"></div>
+    <div class="k-lab">${lab}${tip||key?`<span class="info" title="${key?'Tocca per la spiegazione':tip}">i</span>`:''}</div>
+    <div class="k-val num">${val}</div>${sub?`<div class="k-sub">${sub}</div>`:''}</div>`;
+}
+function renderKPIs(M){
+  const alert=document.getElementById('over-alert');
+  const initTot=S.books.reduce((a,b)=>a+num(b.init),0);
+  let html='';
+  if(initTot>0.001){
+    const names=S.books.filter(b=>num(b.init)>0.001).map(b=>esc(b.name)).join(', ');
+    html+=`<div class="banner" style="border-color:var(--loss);background:rgba(255,90,90,.07);display:block">
+      <div style="line-height:1.6"><b>Dati non uniformi: ${eur(initTot)} non compaiono nei Movimenti.</b><br>
+      ${names} ${S.books.filter(b=>num(b.init)>0.001).length>1?'hanno':'ha'} soldi registrati come “saldo iniziale”, quindi il budget annuale non li vede. Un clic e diventano versamenti veri, senza cambiare i saldi.</div>
+      <div class="btn-row" style="margin-top:10px"><button class="btn" id="fix-init">Sistema ora</button></div>
+    </div>`;
+  }
+  if(M.overflow>0){
+    html+=`<div class="banner" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <span>Hai impiegato <b class="num">${eur(M.netDeployed)}</b> a fronte di un banco di <b class="num">${eur(M.capital)}</b>: sei oltre di <b class="num loss">${eur(M.overflow)}</b> rispetto al capitale che ti sei dato.</span>
+    </div>`;
+  }
+  alert.innerHTML=html;
+  const fx=document.getElementById('fix-init');
+  if(fx)fx.onclick=()=>{
+    document.querySelector('[data-tab=budget]').click();
+    setTimeout(()=>{const t=document.getElementById('cap-check');if(t)t.scrollIntoView({behavior:'smooth',block:'center'});},80);
+  };
+  const el=document.getElementById('kpis');
+  el.innerHTML=[
+    kpi('P/L realizzato',(M.realized>=0?'+':'')+eur(M.realized),`${M.nSettled} giocate chiuse`,M.realized>0?'pos':(M.realized<0?'neg':''),'Somma dei profitti/perdite delle giocate chiuse','pl'),
+    kpi('ROI',pct(M.roi),'su capitale immesso',M.roi>0?'pos':(M.roi<0?'neg':''),'P/L diviso il capitale netto immesso','roi'),
+    kpi('Yield',pct(M.yield_),'sui tuoi soldi giocati',M.yield_>0?'pos':(M.yield_<0?'neg':''),'P/L diviso il totale puntato di tasca tua (esclude le giocate bonus)','yield'),
+    kpi('% vincenti',pct(M.winRate),`${M.nWon}V · ${M.nLost}P`,'','Giocate vinte sul totale delle decise (esclusi void e in corso)','winrate'),
+    kpi('Volume giocato',eur(M.turnover),`media ${eur(M.avgStake)}/gioc.`,'','Somma delle puntate chiuse fatte con soldi tuoi (esclude i bonus)','volume'),
+    kpi('Quota media',M.avgOdds?M.avgOdds.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}):'—','tutte le giocate','','Media aritmetica delle quote inserite','avgodds'),
+    kpi('Sharpe',M.sharpe!==null?M.sharpe.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}):'—','per giocata',M.sharpe>0?'pos':(M.sharpe<0?'neg':''),'Rendimento medio per giocata diviso la sua deviazione standard','sharpe'),
+    kpi('Kelly storico',M.kelly!==null?pct(M.kelly):'—','stake suggerito','','Criterio di Kelly stimato sul tuo storico','kelly'),
+    kpi('Max drawdown',eur(M.maxDD),'calo max dai picchi',M.maxDD>0?'neg':'','Massima discesa del bankroll da un picco al minimo successivo','dd'),
+    kpi('Streak attuale',M.streakTxt,'serie in corso','','Serie consecutiva di vittorie (V) o perdite (P)','streak'),
+    kpi('Miglior streak',M.bestStreakTxt,M.bestLoss?`peggiore ${M.bestLoss}P`:'record di vittorie',M.bestWin?'pos':'','La più lunga serie di vittorie consecutive mai registrata','beststreak'),
+    kpi('In corso',String(M.nPending),eur(M.exposure)+' esposti','','Giocate ancora aperte e capitale bloccato (i bonus non bloccano capitale)'),
+    kpi('Giocate bonus',String(M.nBonus),'senza rischio capitale','','Giocate fatte con bonus o free bet','bonus'),
+  ].join('');
+}
+
+/* ----- chart ----- */
+let curveCache=[];
+function drawChart(M){
+  const cv=document.getElementById('equity');
+  const dpr=window.devicePixelRatio||1;
+  const w=cv.clientWidth,h=240;
+  cv.width=w*dpr;cv.height=h*dpr;
+  const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,w,h);
+  const pts=M.curve;curveCache=[];
+  document.getElementById('chart-range').textContent=pts.length>1?(pts.length-1)+' movimenti':'';
+  if(pts.length<2){
+    ctx.fillStyle='#5A6E8A';ctx.font="13px 'Space Grotesk',sans-serif";ctx.textAlign='center';
+    ctx.fillText('Il grafico compare quando inserisci giocate o versamenti',w/2,h/2);
+    return;
+  }
+  const padL=54,padR=12,padT=16,padB=24;
+  const vals=pts.map(p=>p.v);let min=Math.min(...vals),max=Math.max(...vals);
+  if(min===max){min-=1;max+=1;}const span=max-min;min-=span*0.12;max+=span*0.12;
+  const X=i=>padL+(w-padL-padR)*(i/(pts.length-1));
+  const Y=v=>padT+(h-padT-padB)*(1-(v-min)/(max-min));
+
+  // gridlines + y labels
+  ctx.font="10px 'JetBrains Mono',monospace";ctx.textAlign='right';ctx.textBaseline='middle';
+  for(let g=0;g<=3;g++){
+    const val=min+(max-min)*g/3,y=Y(val);
+    ctx.strokeStyle='rgba(30,64,102,.55)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(w-padR,y);ctx.stroke();
+    ctx.fillStyle='#5A6E8A';ctx.fillText('€'+Math.round(val),padL-8,y);
+  }
+  // zero line
+  if(min<0&&max>0){const yz=Y(0);ctx.strokeStyle='rgba(130,150,176,.45)';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(padL,yz);ctx.lineTo(w-padR,yz);ctx.stroke();ctx.setLineDash([]);}
+
+  // area fill
+  const grad=ctx.createLinearGradient(0,padT,0,h-padB);
+  grad.addColorStop(0,'rgba(116,228,5,.22)');grad.addColorStop(1,'rgba(116,228,5,0)');
+  ctx.beginPath();ctx.moveTo(X(0),Y(pts[0].v));
+  pts.forEach((p,i)=>ctx.lineTo(X(i),Y(p.v)));
+  ctx.lineTo(X(pts.length-1),h-padB);ctx.lineTo(X(0),h-padB);ctx.closePath();
+  ctx.fillStyle=grad;ctx.fill();
+
+  // line
+  ctx.beginPath();ctx.moveTo(X(0),Y(pts[0].v));
+  pts.forEach((p,i)=>ctx.lineTo(X(i),Y(p.v)));
+  ctx.strokeStyle='#74E405';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
+
+  // last point dot
+  const li=pts.length-1;ctx.fillStyle='#74E405';ctx.beginPath();ctx.arc(X(li),Y(pts[li].v),3.5,0,7);ctx.fill();
+
+  pts.forEach((p,i)=>curveCache.push({x:X(i),y:Y(p.v),v:p.v,label:p.label}));
+}
+function chartHover(e){
+  if(!curveCache.length)return;
+  const cv=document.getElementById('equity'),r=cv.getBoundingClientRect();
+  const mx=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+  let best=curveCache[0],bd=1e9;curveCache.forEach(p=>{const d=Math.abs(p.x-mx);if(d<bd){bd=d;best=p;}});
+  const tip=document.getElementById('tip');
+  tip.innerHTML=`<div class="num">${eur(best.v)}</div><div class="d">${best.label==='inizio'?'inizio':new Date(best.label).toLocaleDateString('it-IT')}</div>`;
+  tip.style.left=best.x+'px';tip.style.top=best.y+'px';tip.style.opacity='1';
+}
+function chartOut(){document.getElementById('tip').style.opacity='0';}
+
+/* ----- bookmaker breakdown (overview) ----- */
+function renderBreakdown(M){
+  const host=document.getElementById('bk-breakdown');
+  if(!S.books.length){host.innerHTML='<div class="empty"><div class="e-sub">Aggiungi i tuoi bookmaker nella scheda “Bookmaker”.</div></div>';return;}
+  const rows=S.books.map(b=>{
+    const bal=bookBalance(b.id);
+    const bets=S.bets.filter(x=>x.book===b.id&&isSettled(x));
+    const pl=bets.reduce((a,x)=>a+betProfit(x),0);
+    const share=M.bankroll>0?Math.max(0,bal/M.bankroll*100):0;
+    return {name:b.name,bal,pl,share,n:S.bets.filter(x=>x.book===b.id).length};
+  });
+  host.innerHTML=`<div class="tbl-scroll"><table><thead><tr>
+    <th class="l">Bookmaker</th><th>Saldo</th><th>Quota bankroll</th><th>P/L</th><th>Giocate</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td class="l" style="font-family:var(--disp);font-weight:500">${esc(r.name)}</td>
+      <td>${eur(r.bal)}</td>
+      <td style="color:var(--muted)">${r.share.toFixed(0)}%</td>
+      <td class="${signCls(r.pl)}">${(r.pl>=0?'+':'')+eur(r.pl)}</td>
+      <td style="color:var(--muted)">${r.n}</td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+/* ----- bets table ----- */
+const statusChip={won:['c-won','Vinta'],lost:['c-lost','Persa'],void:['c-void','Void'],pending:['c-pending','In corso'],cashout:['c-won','Cashout']};
+function renderBets(){
+  const fb=document.getElementById('f-book').value,fs=document.getElementById('f-status').value;
+  let rows=[...S.bets].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(fb)rows=rows.filter(r=>r.book===fb);
+  if(fs)rows=rows.filter(r=>r.status===fs);
+  const body=document.getElementById('bets-body'),empt=document.getElementById('bets-empty'),tbl=document.getElementById('bets-table');
+  if(!rows.length){
+    tbl.parentElement.parentElement.style.display='none';
+    empt.innerHTML=`<div class="empty"><div class="e-big">${S.bets.length?'Nessuna giocata con questi filtri':'Ancora nessuna giocata'}</div><div class="e-sub">${S.bets.length?'Prova a cambiare i filtri qui sopra.':'Usa il modulo qui sopra per registrare la tua prima puntata: importo, quota ed esito.'}</div></div>`;
+    return;
+  }
+  tbl.parentElement.parentElement.style.display='';empt.innerHTML='';
+  body.innerHTML=rows.map(b=>{
+    const p=betProfit(b),[cls,txt]=statusChip[b.status];
+    const plCell=b.status==='pending'?'<span style="color:var(--muted-2)">—</span>':`<span class="${signCls(p)}">${(p>=0?'+':'')+eur(p)}</span>`;
+    return `<tr>
+      <td class="l" style="color:var(--muted)">${b.date?new Date(b.date).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—'}</td>
+      <td class="l" style="font-family:var(--disp);max-width:220px;overflow:hidden;text-overflow:ellipsis">${b.bonus?'<span class="chip c-pending" style="font-size:9px;padding:1px 6px;margin-right:5px;vertical-align:middle">BONUS</span>':''}${esc(b.desc)||(b.bonus?'':'<span style="color:var(--muted-2)">—</span>')}</td>
+      <td class="l" style="color:var(--muted)">${esc(bookName(b.book))}</td>
+      <td class="l" style="color:var(--muted);font-family:var(--disp);font-size:12px">${esc(b.type)}</td>
+      <td class="l" style="color:var(--muted-2);font-size:12px">${esc(b.sport||'—')}</td>
+      <td>${eur(num(b.stake))}</td>
+      <td>${num(b.odds).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td><span class="chip ${cls}">${txt}</span></td>
+      <td>${plCell}</td>
+      <td style="white-space:nowrap">${b.status==='pending'?`<button class="rowbtn" data-cashout="${b.id}" style="color:var(--accent)">Cashout</button>`:''}<button class="rowbtn" data-edit="${b.id}">Modifica</button><button class="rowbtn del" data-del="${b.id}">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ----- moves table ----- */
+function renderMoves(){
+  // populate year filter options
+  const years=[...new Set(S.moves.map(m=>m.date&&m.date.slice(0,4)).filter(Boolean))].sort().reverse();
+  const fy=document.getElementById('fm-year');const fyv=fy.value;
+  fy.innerHTML='<option value="">Tutti gli anni</option>'+years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  fy.value=fyv;
+  const fbv=document.getElementById('fm-book').value,ftv=document.getElementById('fm-type').value,fyr=fy.value;
+
+  let rows=[...S.moves].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(fbv)rows=rows.filter(r=>r.book===fbv);
+  if(ftv)rows=rows.filter(r=>r.type===ftv);
+  if(fyr)rows=rows.filter(r=>r.date&&r.date.slice(0,4)===fyr);
+
+  // summary over the filtered set
+  const dep=rows.filter(m=>m.type==='deposit'),wd=rows.filter(m=>m.type==='withdrawal');
+  const depTot=dep.reduce((a,m)=>a+num(m.amount),0),wdTot=wd.reduce((a,m)=>a+num(m.amount),0);
+  const sum=document.getElementById('moves-summary');
+  sum.innerHTML=[
+    kpi('Versamenti',String(dep.length),eur(depTot)+' totali','pos'),
+    kpi('Prelievi',String(wd.length),eur(wdTot)+' totali',''),
+    kpi('Saldo movimenti',(depTot-wdTot>=0?'+':'')+eur(depTot-wdTot),`${rows.length} operazioni`,signCls(depTot-wdTot)),
+  ].join('');
+
+  const body=document.getElementById('moves-body'),empt=document.getElementById('moves-empty');
+  if(!rows.length){body.closest('.card').style.display='none';sum.style.display=S.moves.length?'':'none';
+    empt.innerHTML=`<div class="empty"><div class="e-big">${S.moves.length?'Nessun movimento con questi filtri':'Nessun movimento'}</div><div class="e-sub">${S.moves.length?'Cambia i filtri qui sopra.':'Registra versamenti e prelievi per tenere il conto di quanto capitale metti in gioco.'}</div></div>`;return;}
+  body.closest('.card').style.display='';sum.style.display='';empt.innerHTML='';
+  body.innerHTML=rows.map(m=>{
+    const isdep=m.type==='deposit';
+    return `<tr>
+      <td class="l" style="color:var(--muted)">${m.date?new Date(m.date).toLocaleDateString('it-IT'):'—'}</td>
+      <td class="l" style="font-family:var(--disp)">${esc(bookName(m.book))}</td>
+      <td class="l"><span class="chip ${isdep?'c-won':'c-void'}">${isdep?'Versamento':'Prelievo'}</span></td>
+      <td class="l" style="color:var(--muted);font-family:var(--disp);font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis">${esc(m.note)||'—'}</td>
+      <td class="${isdep?'gain':''}">${(isdep?'+':'-')+eur(num(m.amount)).replace('€ ','€ ')}</td>
+      <td><button class="rowbtn del" data-delmove="${m.id}">Elimina</button></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ----- books cards ----- */
+function renderBooks(){
+  const host=document.getElementById('bk-cards'),empt=document.getElementById('books-empty');
+  if(!S.books.length){host.innerHTML='';empt.innerHTML=`<div class="empty"><div class="e-big">Nessun bookmaker</div><div class="e-sub">Aggiungi le app e i siti su cui giochi. Ognuno avrà il proprio saldo, calcolato da versamenti, prelievi e giocate.</div></div>`;return;}
+  empt.innerHTML='';
+  host.innerHTML=S.books.map((b,idx)=>{
+    const bal=bookBalance(b.id);
+    const bets=S.bets.filter(x=>x.book===b.id);
+    const pl=bets.filter(isSettled).reduce((a,x)=>a+betProfit(x),0);
+    const first=idx===0,last=idx===S.books.length-1;
+    return `<div class="bk" data-openbook="${b.id}">
+      <div class="bk-top">
+        <span class="bk-name">${esc(b.name)}</span>
+        <span style="white-space:nowrap;display:inline-flex;gap:2px;align-items:center">
+          <button class="rowbtn ord" data-moveup="${b.id}" ${first?'disabled':''} title="Sposta su">▲</button>
+          <button class="rowbtn ord" data-movedown="${b.id}" ${last?'disabled':''} title="Sposta giù">▼</button>
+          <button class="rowbtn" data-editbook="${b.id}">Modifica</button>
+          <button class="rowbtn del" data-delbook="${b.id}">✕</button>
+        </span>
+      </div>
+      <div class="bk-bal ${signCls(bal)}">${eur(bal)}</div>
+      <div class="bk-meta"><span>${bets.length} giocate</span><span class="${signCls(pl)}">P/L ${(pl>=0?'+':'')+eur(pl)}</span></div>
+      <div class="bk-meta" style="border-top:none;padding-top:0"><span>iniziale ${eur(num(b.init))}</span><span class="bk-open">Apri dettaglio →</span></div>
+    </div>`;
+  }).join('');
+}
+
+/* ----- bookmaker detail (drill-down) ----- */
+function bookMetrics(id){
+  const bk=S.books.find(b=>b.id===id);
+  const init=num(bk.init);
+  const moves=S.moves.filter(m=>m.book===id);
+  const deposits=moves.filter(m=>m.type==='deposit').reduce((a,m)=>a+num(m.amount),0);
+  const withdrawals=moves.filter(m=>m.type==='withdrawal').reduce((a,m)=>a+num(m.amount),0);
+  const netDeposits=deposits-withdrawals;
+  const bets=S.bets.filter(b=>b.book===id);
+  const settled=bets.filter(isSettled),pending=bets.filter(b=>b.status==='pending');
+  const realized=settled.reduce((a,b)=>a+betProfit(b),0);
+  const balance=init+netDeposits+realized;
+  const capital=init+netDeposits;
+  const own=settled.filter(b=>!b.bonus);
+  const turnover=own.reduce((a,b)=>a+num(b.stake),0);
+  const realizedOwn=own.reduce((a,b)=>a+betProfit(b),0);
+  const won=settled.filter(b=>b.status==='won'),lost=settled.filter(b=>b.status==='lost');
+  const decided=won.length+lost.length;
+  const winRate=decided?won.length/decided*100:0;
+  const yield_=turnover?realizedOwn/turnover*100:0;
+  const roi=capital>0?realized/capital*100:0;
+  const avgStake=own.length?turnover/own.length:0;
+  const oddsArr=bets.map(b=>num(b.odds)).filter(o=>o>0);
+  const avgOdds=oddsArr.length?oddsArr.reduce((a,c)=>a+c,0)/oddsArr.length:0;
+  const exposure=pending.filter(b=>!b.bonus).reduce((a,b)=>a+num(b.stake),0);
+  const nBonus=bets.filter(b=>b.bonus).length;
+  const rets=own.filter(b=>num(b.stake)>0).map(b=>betProfit(b)/num(b.stake));
+  let sharpe=null;
+  if(rets.length>=2){const m=rets.reduce((a,b)=>a+b,0)/rets.length;const sd=Math.sqrt(rets.reduce((a,b)=>a+(b-m)**2,0)/(rets.length-1));sharpe=sd>0?m/sd:null;}
+  const ownWon=own.filter(b=>b.status==='won'),ownLost=own.filter(b=>b.status==='lost'),ownDec=ownWon.length+ownLost.length;
+  let kelly=null;
+  if(ownDec>=5){const p=ownWon.length/ownDec;const bn=ownWon.concat(ownLost).map(x=>num(x.odds)-1).filter(x=>x>0);const b=bn.length?bn.reduce((a,c)=>a+c,0)/bn.length:0;if(b>0)kelly=Math.max(0,(b*p-(1-p))/b)*100;}
+  const chrono=won.concat(lost).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  let rw=0,bestWin=0;chrono.forEach(b=>{if(b.status==='won'){rw++;if(rw>bestWin)bestWin=rw;}else rw=0;});
+  const events=[];
+  moves.forEach(m=>events.push({date:m.date,delta:(m.type==='deposit'?1:-1)*num(m.amount)}));
+  settled.forEach(b=>events.push({date:b.date,delta:betProfit(b)}));
+  events.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const curve=[{label:'inizio',v:init}];let run=init;events.forEach(e=>{run+=e.delta;curve.push({label:e.date,v:run});});
+  let peak=-Infinity,maxDD=0;curve.forEach(p=>{if(p.v>peak)peak=p.v;const dd=peak-p.v;if(dd>maxDD)maxDD=dd;});
+  return {name:bk.name,init,deposits,withdrawals,netDeposits,balance,capital,realized,turnover,winRate,yield_,roi,
+    avgStake,avgOdds,exposure,nBonus,sharpe,kelly,bestWin,maxDD,curve,
+    nBets:bets.length,nSettled:settled.length,nPending:pending.length,nWon:won.length,nLost:lost.length,moves,bets};
+}
+function openBookDetail(id){
+  const B=bookMetrics(id);
+  document.getElementById('bd-name').textContent=B.name;
+  const bal=document.getElementById('bd-bal');bal.textContent=eur(B.balance);bal.className='bd-bal num '+signCls(B.balance);
+  document.getElementById('bd-kpis').innerHTML=[
+    kpi('P/L del book',(B.realized>=0?'+':'')+eur(B.realized),`${B.nSettled} chiuse`,B.realized>0?'pos':(B.realized<0?'neg':''),'Profitto/perdita delle giocate chiuse su questo book'),
+    kpi('ROI',pct(B.roi),'su capitale del book',B.roi>0?'pos':(B.roi<0?'neg':''),'P/L diviso il capitale immesso nel book (iniziale + versamenti netti)'),
+    kpi('Yield',pct(B.yield_),'sui tuoi soldi',B.yield_>0?'pos':(B.yield_<0?'neg':''),'P/L diviso il volume giocato di tasca tua (esclude i bonus)'),
+    kpi('% vincenti',pct(B.winRate),`${B.nWon}V · ${B.nLost}P`,'','Vinte sul totale delle decise'),
+    kpi('Volume giocato',eur(B.turnover),`media ${eur(B.avgStake)}`,'','Somma delle puntate chiuse con soldi tuoi'),
+    kpi('Quota media',B.avgOdds?B.avgOdds.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}):'—','del book','',''),
+    kpi('Sharpe',B.sharpe!==null?B.sharpe.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}):'—','per giocata',B.sharpe>0?'pos':(B.sharpe<0?'neg':''),'Ritorno aggiustato per il rischio sulle giocate del book'),
+    kpi('Kelly storico',B.kelly!==null?pct(B.kelly):'—','stake suggerito','','Frazione ottimale stimata sull\'edge del book (min. 5 decise)'),
+    kpi('Max drawdown',eur(B.maxDD),'calo max',B.maxDD>0?'neg':'','Massima discesa del saldo del book da un picco'),
+    kpi('Miglior streak',B.bestWin?B.bestWin+'V':'—','record vittorie',B.bestWin?'pos':'',''),
+    kpi('Versato / Prelevato',eur(B.deposits),`prelievi ${eur(B.withdrawals)}`,'','Totale versato e prelevato su questo book'),
+    kpi('Esposizione',eur(B.exposure),`${B.nPending} in corso`,'','Capitale bloccato in giocate ancora aperte'),
+    kpi('Saldo iniziale',eur(B.init),'all\'apertura','',''),
+    kpi('Giocate bonus',String(B.nBonus),'senza rischio','',''),
+  ].join('');
+  // bets table
+  const bt=document.getElementById('bd-bets'),bte=document.getElementById('bd-bets-empty');
+  const brows=[...B.bets].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(!brows.length){bt.closest('.card').style.display='none';bte.innerHTML='<div class="empty"><div class="e-sub">Nessuna giocata su questo book.</div></div>';}
+  else{bt.closest('.card').style.display='';bte.innerHTML='';
+    bt.innerHTML=brows.map(b=>{const p=betProfit(b),[cls,txt]=statusChip[b.status];
+      const plCell=b.status==='pending'?'<span style="color:var(--muted-2)">—</span>':`<span class="${signCls(p)}">${(p>=0?'+':'')+eur(p)}</span>`;
+      return `<tr>
+        <td class="l" style="color:var(--muted)">${b.date?new Date(b.date).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—'}</td>
+        <td class="l" style="font-family:var(--disp);max-width:200px;overflow:hidden;text-overflow:ellipsis">${b.bonus?'<span class="chip c-pending" style="font-size:9px;padding:1px 6px;margin-right:5px">BONUS</span>':''}${esc(b.desc)||'—'}</td>
+        <td class="l" style="color:var(--muted);font-family:var(--disp);font-size:12px">${esc(b.type)}</td>
+        <td>${eur(num(b.stake))}</td>
+        <td>${num(b.odds).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+        <td><span class="chip ${cls}">${txt}</span></td>
+        <td>${plCell}</td></tr>`;}).join('');}
+  // moves table
+  const mt=document.getElementById('bd-moves'),mte=document.getElementById('bd-moves-empty');
+  const mrows=[...B.moves].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(!mrows.length){mt.closest('.card').style.display='none';mte.innerHTML='<div class="empty"><div class="e-sub">Nessun movimento su questo book.</div></div>';}
+  else{mt.closest('.card').style.display='';mte.innerHTML='';
+    mt.innerHTML=mrows.map(m=>{const d=m.type==='deposit';
+      return `<tr>
+        <td class="l" style="color:var(--muted)">${m.date?new Date(m.date).toLocaleDateString('it-IT'):'—'}</td>
+        <td class="l"><span class="chip ${d?'c-won':'c-void'}">${d?'Versamento':'Prelievo'}</span></td>
+        <td class="l" style="color:var(--muted);font-family:var(--disp);font-size:12px">${esc(m.note)||'—'}</td>
+        <td class="${d?'gain':''}">${(d?'+':'-')+eur(num(m.amount)).replace('€ ','€ ')}</td></tr>`;}).join('');}
+  document.getElementById('book-detail').classList.add('show');
+  document.body.style.overflow='hidden';
+  requestAnimationFrame(()=>drawBookCurve(B.curve));
+}
+function closeBookDetail(){document.getElementById('book-detail').classList.remove('show');document.body.style.overflow='';}
+function drawBookCurve(pts){
+  const cv=document.getElementById('bd-chart');const dpr=window.devicePixelRatio||1;
+  const w=cv.clientWidth||600,h=200;cv.width=w*dpr;cv.height=h*dpr;
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+  if(pts.length<2){ctx.fillStyle='#5A6E8A';ctx.font="13px 'Space Grotesk',sans-serif";ctx.textAlign='center';ctx.fillText('Nessun dato ancora per il grafico',w/2,h/2);return;}
+  const padL=54,padR=12,padT=14,padB=22;
+  const vals=pts.map(p=>p.v);let min=Math.min(...vals),max=Math.max(...vals);
+  if(min===max){min-=1;max+=1;}const span=max-min;min-=span*0.12;max+=span*0.12;
+  const X=i=>padL+(w-padL-padR)*(i/(pts.length-1));
+  const Y=v=>padT+(h-padT-padB)*(1-(v-min)/(max-min));
+  ctx.font="10px 'JetBrains Mono',monospace";ctx.textAlign='right';ctx.textBaseline='middle';
+  for(let g=0;g<=3;g++){const val=min+(max-min)*g/3,y=Y(val);
+    ctx.strokeStyle='rgba(30,64,102,.55)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(w-padR,y);ctx.stroke();
+    ctx.fillStyle='#5A6E8A';ctx.fillText('€'+Math.round(val),padL-8,y);}
+  if(min<0&&max>0){const yz=Y(0);ctx.strokeStyle='rgba(130,150,176,.45)';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(padL,yz);ctx.lineTo(w-padR,yz);ctx.stroke();ctx.setLineDash([]);}
+  const grad=ctx.createLinearGradient(0,padT,0,h-padB);grad.addColorStop(0,'rgba(116,228,5,.22)');grad.addColorStop(1,'rgba(116,228,5,0)');
+  ctx.beginPath();ctx.moveTo(X(0),Y(pts[0].v));pts.forEach((p,i)=>ctx.lineTo(X(i),Y(p.v)));
+  ctx.lineTo(X(pts.length-1),h-padB);ctx.lineTo(X(0),h-padB);ctx.closePath();ctx.fillStyle=grad;ctx.fill();
+  ctx.beginPath();ctx.moveTo(X(0),Y(pts[0].v));pts.forEach((p,i)=>ctx.lineTo(X(i),Y(p.v)));
+  ctx.strokeStyle='#74E405';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
+  const li=pts.length-1;ctx.fillStyle='#74E405';ctx.beginPath();ctx.arc(X(li),Y(pts[li].v),3.5,0,7);ctx.fill();
+}
+
+/* ----- budget ----- */
+function renderBudget(M){
+  const yr=new Date().getFullYear();
+  document.getElementById('year-lab').textContent=yr;
+  const inYear=d=>d&&d.slice(0,4)==String(yr);
+  const dep=S.moves.filter(m=>m.type==='deposit'&&inYear(m.date)).reduce((a,m)=>a+num(m.amount),0);
+  const wd=S.moves.filter(m=>m.type==='withdrawal'&&inYear(m.date)).reduce((a,m)=>a+num(m.amount),0);
+  const netIn=dep-wd;
+  const plYear=S.bets.filter(b=>isSettled(b)&&inYear(b.date)).reduce((a,b)=>a+betProfit(b),0);
+  const staked=S.bets.filter(b=>isSettled(b)&&inYear(b.date)).reduce((a,b)=>a+num(b.stake),0);
+
+  const lim=S.settings.annualLimit;
+  const host=document.getElementById('budget-body');
+  if(lim&&lim>0){
+    const used=Math.max(0,netIn),ratio=used/lim,over=ratio>1;
+    host.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span class="num" style="font-size:26px;font-weight:600;${over?'color:var(--loss)':''}">${eur(used)}</span>
+        <span style="color:var(--muted);font-size:13px">di ${eur(lim)}</span>
+      </div>
+      <div class="bar ${over?'over':''}"><span style="width:${Math.min(100,ratio*100)}%"></span></div>
+      <div style="display:flex;justify-content:space-between;margin-top:9px;font-family:var(--mono);font-size:12px;color:var(--muted)">
+        <span>${(ratio*100).toFixed(0)}% impiegato</span>
+        <span>${over?'oltre di '+eur(used-lim):'restano '+eur(lim-used)}</span>
+      </div>`;
+  }else{
+    host.innerHTML='<div style="color:var(--muted);font-size:13px;line-height:1.6">Imposta un tetto qui sopra per vedere quanto capitale hai già immesso nell\'anno e quanto ti resta.</div>';
+  }
+
+  document.getElementById('year-stats').innerHTML=`<div class="tbl-scroll"><table><tbody>
+    ${statRow('Versato nell\'anno','+'+eur(dep),'gain')}
+    ${statRow('Prelevato nell\'anno','-'+eur(wd),'')}
+    ${statRow('Capitale netto immesso',eur(netIn),signCls(netIn))}
+    ${statRow('Volume giocato',eur(staked),'')}
+    ${statRow('P/L dell\'anno',(plYear>=0?'+':'')+eur(plYear),signCls(plYear))}
+    ${statRow('Bilancio netto reale',(plYear>=0?'+':'')+eur(plYear),signCls(plYear))}
+  </tbody></table></div>`;
+}
+/* ============================================================
+   SINCRONIZZAZIONE TRA DISPOSITIVI
+============================================================ */
+const BKEY='bankroll_backup_v1';
+function whenTxt(iso){
+  if(!iso)return 'mai';
+  const d=new Date(iso), now=new Date();
+  const mins=Math.round((now-d)/60000);
+  if(mins<1)return 'adesso';
+  if(mins<60)return mins+' min fa';
+  const sameDay=d.toDateString()===now.toDateString();
+  if(sameDay)return 'oggi alle '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'})+' alle '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+}
+function dataSummary(o){
+  return `${(o.books||[]).length} book · ${(o.bets||[]).length} giocate · ${(o.moves||[]).length} movimenti`;
+}
+function renderSync(){
+  const host=document.getElementById('sync-body');if(!host)return;
+  const w=document.getElementById('sync-when');
+  const m=S.meta||{};
+  if(w)w.textContent=m.updated?`ultimo salvataggio ${whenTxt(m.updated)}${m.device?' da '+m.device:''}`:'';
+
+  if(storageMode==='cloud'){const b=document.getElementById('storage-banner');if(b)b.remove();}
+
+  let statusHtml;
+  if(storageMode==='cloud'&&cloudUser){
+    statusHtml=`<div style="padding:11px 13px;border-radius:9px;background:rgba(116,228,5,.07);border-left:2px solid var(--accent);font-size:12.5px;line-height:1.6;margin-bottom:14px">
+      <b style="color:var(--accent)">✓ Sincronizzazione cloud attiva</b><br>
+      <span style="color:var(--muted)">Account <b style="color:var(--text)">${escapeHtml(cloudUser.email||'')}</b> — apri l'app con lo stesso account da qualsiasi dispositivo e i dati restano allineati in automatico.</span>
+      <div class="btn-row"><button class="btn ghost" id="sy-signout">Esci dall'account</button></div>
+    </div>`;
+  }else if(cloudConfigured){
+    statusHtml=`<div style="padding:11px 13px;border-radius:9px;background:var(--surface-2);border-left:2px solid var(--muted-2);font-size:12.5px;line-height:1.6;margin-bottom:14px">
+      <b style="color:var(--text)">Sincronizzazione cloud disponibile</b><br>
+      <span style="color:var(--muted)">Accedi con la tua email per attivarla su tutti i tuoi dispositivi. Stessa email e password su ogni telefono/PC.</span>
+    </div>
+    <div class="fields" style="margin-bottom:10px">
+      <div class="field"><label>Email</label><input type="email" id="sy-email" autocomplete="username" placeholder="tuo@indirizzo.it"></div>
+      <div class="field"><label>Password</label><input type="password" id="sy-pass" autocomplete="current-password" placeholder="almeno 6 caratteri"></div>
+    </div>
+    <div class="btn-row" style="margin-bottom:14px">
+      <button class="btn" id="sy-signin">Accedi</button>
+      <button class="btn ghost" id="sy-signup">Crea account</button>
+      <button class="btn ghost" id="sy-reset" style="font-size:11.5px;color:var(--muted-2)">Password dimenticata?</button>
+    </div>`;
+  }else{
+    const modeInfo={
+      local:['Solo questo dispositivo','var(--muted)','I dati restano su questo browser e non si sincronizzano tra dispositivi diversi. Configura Firebase (vedi README del progetto) per attivare la sincronizzazione automatica via account, oppure usa Copia/Incolla qui sotto.'],
+      volatile:['⚠︎ Salvataggio non attivo','var(--loss)','Il browser non permette il salvataggio locale: i dati resteranno solo finché non chiudi la pagina.']
+    }[storageMode]||['','',''];
+    statusHtml=`<div style="padding:11px 13px;border-radius:9px;background:${storageMode==='volatile'?'rgba(255,90,90,.08)':'var(--surface-2)'};border-left:2px solid ${modeInfo[1]};font-size:12.5px;line-height:1.6;margin-bottom:14px">
+      <b style="color:${modeInfo[1]}">${modeInfo[0]}</b><br><span style="color:var(--muted)">${modeInfo[2]}</span>
+    </div>`;
+  }
+
+  host.innerHTML=statusHtml+`
+    <p style="color:var(--muted);font-size:12.5px;line-height:1.6;margin-bottom:12px">
+      In alternativa, per spostare i dati a mano senza file: <b style="color:var(--text)">Copia</b> qui, incolla il testo dove vuoi, poi sull'altro dispositivo usa <b style="color:var(--text)">Incolla e applica</b>.
+    </p>
+    <div class="btn-row" style="margin-bottom:12px">
+      <button class="btn" id="sy-copy">Copia dati</button>
+      <button class="btn ghost" id="sy-open">Incolla dati da un altro dispositivo</button>
+    </div>
+    <div id="sy-paste" style="display:none">
+      <div class="field" style="margin-bottom:10px">
+        <label>Incolla qui il testo copiato dall'altro dispositivo</label>
+        <textarea id="sy-text" rows="4" placeholder="Incolla qui..." style="font-family:var(--mono);font-size:11px"></textarea>
+      </div>
+      <div id="sy-preview" style="margin-bottom:10px"></div>
+      <div class="btn-row">
+        <button class="btn" id="sy-apply">Applica</button>
+        <button class="btn ghost" id="sy-cancel">Annulla</button>
+      </div>
+    </div>
+    <div id="sy-undo"></div>`;
+  document.getElementById('sy-copy').onclick=copyData;
+  document.getElementById('sy-open').onclick=()=>{
+    const p=document.getElementById('sy-paste');
+    p.style.display=p.style.display==='none'?'':'none';
+    if(p.style.display==='')document.getElementById('sy-text').focus();
+  };
+  document.getElementById('sy-cancel').onclick=()=>{
+    document.getElementById('sy-paste').style.display='none';
+    document.getElementById('sy-text').value='';
+    document.getElementById('sy-preview').innerHTML='';
+  };
+  document.getElementById('sy-text').addEventListener('input',previewPaste);
+  document.getElementById('sy-apply').onclick=applyPaste;
+
+  const signoutBtn=document.getElementById('sy-signout');
+  if(signoutBtn)signoutBtn.onclick=cloudSignOut;
+  const signinBtn=document.getElementById('sy-signin');
+  if(signinBtn)signinBtn.onclick=()=>{
+    const email=document.getElementById('sy-email').value.trim();
+    const pass=document.getElementById('sy-pass').value;
+    if(!email||!pass){toast('Inserisci email e password',true);return;}
+    cloudSignIn(email,pass);
+  };
+  const signupBtn=document.getElementById('sy-signup');
+  if(signupBtn)signupBtn.onclick=()=>{
+    const email=document.getElementById('sy-email').value.trim();
+    const pass=document.getElementById('sy-pass').value;
+    if(!email||!pass){toast('Inserisci email e password',true);return;}
+    cloudSignUp(email,pass);
+  };
+  const resetBtn=document.getElementById('sy-reset');
+  if(resetBtn)resetBtn.onclick=()=>{
+    const email=document.getElementById('sy-email').value.trim();
+    if(!email){toast('Inserisci la tua email qui sopra, poi premi di nuovo',true);return;}
+    cloudResetPassword(email);
+  };
+
+  renderUndo();
+}
+async function copyData(){
+  const txt=JSON.stringify(S);
+  try{
+    await navigator.clipboard.writeText(txt);
+    toast('Dati copiati — incollali dove vuoi');
+  }catch(e){
+    // fallback: mostro il testo da selezionare a mano
+    const p=document.getElementById('sy-paste');
+    p.style.display='';
+    const t=document.getElementById('sy-text');
+    t.value=txt;t.select();
+    try{document.execCommand('copy');toast('Dati copiati');}
+    catch(e2){toast('Seleziona il testo qui sotto e copialo a mano',true);}
+  }
+}
+function parsePasted(){
+  const raw=document.getElementById('sy-text').value.trim();
+  if(!raw)return null;
+  try{const d=JSON.parse(raw);if(!d||!Array.isArray(d.books))return 'bad';return d;}
+  catch(e){return 'bad';}
+}
+function previewPaste(){
+  const box=document.getElementById('sy-preview');
+  const d=parsePasted();
+  if(!d){box.innerHTML='';return;}
+  if(d==='bad'){box.innerHTML='<div style="padding:10px 12px;border-radius:8px;background:rgba(255,90,90,.08);border-left:2px solid var(--loss);font-size:12.5px">Il testo non sembra un salvataggio di BetLedger. Assicurati di aver copiato tutto.</div>';return;}
+  const inc=d.meta&&d.meta.updated?new Date(d.meta.updated):null;
+  const cur=S.meta&&S.meta.updated?new Date(S.meta.updated):null;
+  const older=inc&&cur&&inc<cur;
+  box.innerHTML=`<div style="padding:11px 13px;border-radius:8px;background:${older?'rgba(255,90,90,.08)':'rgba(116,228,5,.07)'};border-left:2px solid ${older?'var(--loss)':'var(--accent)'};font-size:12.5px;line-height:1.6">
+    <b style="color:var(--text)">In arrivo:</b> ${dataSummary(d)}${inc?` · salvati ${whenTxt(d.meta.updated)}${d.meta.device?' da '+d.meta.device:''}`:''}<br>
+    <b style="color:var(--text)">Qui ora:</b> ${dataSummary(S)}${cur?` · salvati ${whenTxt(S.meta.updated)}${S.meta.device?' da '+S.meta.device:''}`:''}
+    ${older?'<br><br><b style="color:var(--loss)">Attenzione: i dati che stai incollando sono più vecchi di quelli già presenti qui.</b> Se procedi perderai le modifiche più recenti.':''}
+  </div>`;
+}
+async function applyPaste(){
+  const d=parsePasted();
+  if(!d||d==='bad'){toast('Incolla prima un salvataggio valido',true);return;}
+  const inc=d.meta&&d.meta.updated?new Date(d.meta.updated):null;
+  const cur=S.meta&&S.meta.updated?new Date(S.meta.updated):null;
+  const older=inc&&cur&&inc<cur;
+  const ok=await confirmDialog(
+    `Sostituisco i dati di questo dispositivo con quelli incollati.<br><br>`+
+    `<b>In arrivo:</b> ${dataSummary(d)}<br><b>Verranno sostituiti:</b> ${dataSummary(S)}<br><br>`+
+    (older?'<b style="color:#FF5A5A">I dati in arrivo sono più vecchi di quelli attuali.</b><br><br>':'')+
+    `Salvo comunque una copia di quelli attuali: potrai annullare subito dopo.`,
+    'Applica','Annulla');
+  if(!ok)return;
+  await stashBackup();
+  loadState(d);
+  await save();refreshInputs();renderAll();
+  toast('Dati aggiornati da un altro dispositivo');
+}
+function loadState(d){
+  S=d;
+  S.settings=S.settings||{annualLimit:null,capital:null};
+  if(S.settings.capital===undefined)S.settings.capital=null;
+  S.books=S.books||[];S.moves=S.moves||[];S.bets=S.bets||[];S.notes=S.notes||[];
+  S.exchange=S.exchange||{capital:null,start:null,units:null,startStake:null,snaps:[]};
+  S.exchange.snaps=S.exchange.snaps||[];
+}
+function refreshInputs(){
+  document.getElementById('bud-limit').value=S.settings.annualLimit?String(S.settings.annualLimit).replace('.',','):'';
+  document.getElementById('cap-pool').value=S.settings.capital?String(S.settings.capital).replace('.',','):'';
+  fillExInputs();
+}
+async function stashBackup(){
+  const snap=JSON.stringify(S);
+  try{
+    if(storageMode==='cloud'||storageMode==='local')localStorage.setItem(BKEY,snap);
+    else window.__bkBackup=snap;
+  }catch(e){window.__bkBackup=snap;}
+}
+async function readBackup(){
+  try{
+    if(storageMode==='cloud'||storageMode==='local')return localStorage.getItem(BKEY);
+  }catch(e){}
+  return window.__bkBackup||null;
+}
+async function renderUndo(){
+  const host=document.getElementById('sy-undo');if(!host)return;
+  const b=await readBackup();
+  if(!b){host.innerHTML='';return;}
+  let o;try{o=JSON.parse(b);}catch(e){host.innerHTML='';return;}
+  host.innerHTML=`<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line-soft);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+    <span style="color:var(--muted-2);font-size:12px">Copia di sicurezza prima dell'ultima sostituzione: ${dataSummary(o)}${o.meta&&o.meta.updated?` · ${whenTxt(o.meta.updated)}`:''}</span>
+    <button class="btn ghost" id="sy-undo-btn">Ripristina</button>
+  </div>`;
+  document.getElementById('sy-undo-btn').onclick=async()=>{
+    if(!await confirmDialog(`Ripristino i dati precedenti (${dataSummary(o)}) al posto di quelli attuali (${dataSummary(S)})?`,'Ripristina','Annulla'))return;
+    loadState(o);await save();refreshInputs();renderAll();toast('Dati ripristinati');
+  };
+}
+
+/* ============================================================
+   VERIFICA CAPITALE — un solo canale: i movimenti
+============================================================ */
+function capitalBreakdown(){
+  const rows=S.books.map(b=>{
+    const init=num(b.init);
+    const dep=S.moves.filter(m=>m.book===b.id&&m.type==='deposit').reduce((a,m)=>a+num(m.amount),0);
+    const wd=S.moves.filter(m=>m.book===b.id&&m.type==='withdrawal').reduce((a,m)=>a+num(m.amount),0);
+    const pl=S.bets.filter(x=>x.book===b.id&&isSettled(x)).reduce((a,x)=>a+betProfit(x),0);
+    return {id:b.id,name:b.name,init,dep,wd,deployed:init+dep-wd,pl,bal:init+dep-wd+pl};
+  });
+  const t=rows.reduce((a,r)=>({init:a.init+r.init,dep:a.dep+r.dep,wd:a.wd+r.wd,
+    deployed:a.deployed+r.deployed,pl:a.pl+r.pl,bal:a.bal+r.bal}),
+    {init:0,dep:0,wd:0,deployed:0,pl:0,bal:0});
+  return {rows,tot:t};
+}
+function renderCapCheck(){
+  const host=document.getElementById('cap-check');if(!host)return;
+  const {rows,tot}=capitalBreakdown();
+  if(!rows.length){host.innerHTML='<div style="color:var(--muted);font-size:13px">Aggiungi i tuoi bookmaker per vedere la verifica.</div>';return;}
+  const yr=new Date().getFullYear();
+  const depYear=S.moves.filter(m=>m.type==='deposit'&&(m.date||'').slice(0,4)==String(yr)).reduce((a,m)=>a+num(m.amount),0);
+  const wdYear=S.moves.filter(m=>m.type==='withdrawal'&&(m.date||'').slice(0,4)==String(yr)).reduce((a,m)=>a+num(m.amount),0);
+  const budgetSees=depYear-wdYear;
+  const hasInit=tot.init>0.001;
+  const gap=tot.deployed-budgetSees;
+
+  const table=`<div class="tbl-scroll" style="margin-bottom:12px"><table>
+    <thead><tr><th class="l">Bookmaker</th><th>Saldo iniziale</th><th>Versamenti</th><th>Prelievi</th><th>Capitale impiegato</th><th>Saldo attuale</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td class="l" style="font-family:var(--disp);font-weight:500">${esc(r.name)}</td>
+      <td class="${r.init>0?'':'num'}" style="${r.init>0?'color:var(--loss)':'color:var(--muted-2)'}">${eur(r.init)}</td>
+      <td>${eur(r.dep)}</td>
+      <td style="color:var(--muted-2)">${r.wd?eur(r.wd):'—'}</td>
+      <td><b>${eur(r.deployed)}</b></td>
+      <td class="${signCls(r.bal)}">${eur(r.bal)}</td></tr>`).join('')}
+      <tr style="border-top:2px solid var(--line)">
+        <td class="l" style="font-family:var(--disp);font-weight:700">Totale</td>
+        <td style="${hasInit?'color:var(--loss)':'color:var(--muted-2)'}">${eur(tot.init)}</td>
+        <td><b>${eur(tot.dep)}</b></td>
+        <td style="color:var(--muted-2)">${tot.wd?eur(tot.wd):'—'}</td>
+        <td><b style="font-size:15px">${eur(tot.deployed)}</b></td>
+        <td class="${signCls(tot.bal)}"><b>${eur(tot.bal)}</b></td></tr>
+    </tbody></table></div>`;
+
+  let verdict;
+  if(hasInit){
+    verdict=`<div style="padding:12px 14px;border-radius:9px;background:rgba(255,90,90,.08);border-left:2px solid var(--loss);font-size:12.5px;line-height:1.6">
+      <b style="color:var(--text)">Disallineamento: ${eur(tot.init)} sono entrati come “saldo iniziale”.</b><br>
+      Il saldo dei bookmaker e la riserva li contano, ma il <b style="color:var(--text)">budget annuale no</b>, perché quello guarda solo i movimenti: per questo vede ${eur(budgetSees)} invece di ${eur(tot.deployed)}${gap>0.001?` (mancano ${eur(gap)})`:''}.<br><br>
+      Il pulsante qui sotto converte ogni saldo iniziale in un <b style="color:var(--text)">Versamento</b> alla data che scegli e azzera il campo. Il saldo dei book <b style="color:var(--text)">non cambia di un centesimo</b>: cambia solo il canale, e da lì in poi tutte e tre le pagine mostrano gli stessi numeri.
+    </div>
+    <div class="fields" style="margin-top:12px;align-items:flex-end">
+      <div class="field" style="max-width:200px"><label>Data da assegnare</label><input type="date" id="cc-date"><span class="hint">determina l'anno del budget</span></div>
+      <div class="btn-row" style="margin:0"><button class="btn" id="cc-run">Converti in versamenti</button></div>
+    </div>
+    <p style="color:var(--muted-2);font-size:11px;margin-top:10px">Prima di procedere ti conviene fare un <b style="color:var(--muted)">Esporta dati</b> qui sotto, così hai una copia di sicurezza.</p>`;
+  }else{
+    verdict=`<div style="padding:12px 14px;border-radius:9px;background:rgba(116,228,5,.07);border-left:2px solid var(--accent);font-size:12.5px;line-height:1.6">
+      <b style="color:var(--text)">Tutto allineato ✓</b> — il capitale passa interamente dai movimenti, quindi bookmaker, riserva e budget annuale raccontano la stessa storia.
+      ${Math.abs(gap)>0.001?`<br><br>Nota: il budget annuale vede ${eur(budgetSees)} perché conta solo i movimenti datati ${yr}. La differenza di ${eur(Math.abs(gap))} viene da movimenti di altri anni — è corretto che sia così.`:''}
+    </div>`;
+  }
+  host.innerHTML=table+verdict;
+  const btn=document.getElementById('cc-run');
+  if(btn){
+    document.getElementById('cc-date').value=todayISO();
+    btn.onclick=normalizeInits;
+  }
+}
+async function normalizeInits(){
+  const {rows,tot}=capitalBreakdown();
+  const date=document.getElementById('cc-date').value||todayISO();
+  const toDo=rows.filter(r=>r.init>0.001);
+  if(!toDo.length){toast('Non c\'è niente da convertire');return;}
+  const list=toDo.map(r=>`${esc(r.name)} → versamento di ${eur(r.init)}`).join('<br>');
+  const ok=await confirmDialog(
+    `Verranno creati <b>${toDo.length} versamenti</b> datati ${new Date(date+'T00:00:00').toLocaleDateString('it-IT')} e i saldi iniziali andranno a zero:<br><br>${list}<br><br>`+
+    `Totale: <b>${eur(tot.init)}</b>. Il saldo dei bookmaker resta identico.`,
+    'Converti','Annulla');
+  if(!ok)return;
+  toDo.forEach(r=>{
+    S.moves.push({id:uid(),date,book:r.id,type:'deposit',amount:r.init,note:'da saldo iniziale'});
+    const b=S.books.find(x=>x.id===r.id);if(b)b.init=0;
+  });
+  await save();renderAll();
+  toast(`Convertiti ${eur(tot.init)} in versamenti`);
+}
+
+function statRow(l,v,cls){return `<tr><td class="l" style="font-family:var(--disp);color:var(--muted)">${l}</td><td class="${cls}" style="font-size:15px">${v}</td></tr>`;}
+
+const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ============================================================
+   NOTE / APPUNTI
+============================================================ */
+let noteFilter='open', editingNote=null;
+const NCAT={todo:'Giocata da fare',idea:'Idea / strategia',promo:'Bonus / promo',nota:'Appunto'};
+
+function noteDueInfo(n){
+  if(!n.due)return null;
+  const today=todayISO();
+  const d=new Date(n.due+'T00:00:00'), t=new Date(today+'T00:00:00');
+  const days=Math.round((d-t)/86400000);
+  const txt=d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
+  if(days<0)return {cls:'late',txt:txt+' · scaduta'};
+  if(days===0)return {cls:'soon',txt:'oggi'};
+  if(days===1)return {cls:'soon',txt:'domani'};
+  if(days<=3)return {cls:'soon',txt:txt+' · tra '+days+'g'};
+  return {cls:'',txt};
+}
+function renderNotes(){
+  const host=document.getElementById('note-list'),empt=document.getElementById('notes-empty');
+  let list=[...S.notes];
+  if(noteFilter==='open')list=list.filter(n=>!n.done);
+  else if(noteFilter==='done')list=list.filter(n=>n.done);
+  else if(noteFilter!=='all')list=list.filter(n=>n.cat===noteFilter&&!n.done);
+  // ordine: prima quelle con scadenza più vicina, poi le altre per data di creazione
+  list.sort((a,b)=>{
+    if(a.done!==b.done)return a.done?1:-1;
+    if(a.due&&b.due)return a.due.localeCompare(b.due);
+    if(a.due)return -1;
+    if(b.due)return 1;
+    return (b.created||'').localeCompare(a.created||'');
+  });
+  if(!list.length){
+    host.innerHTML='';
+    const msg={open:['Nessuna nota aperta','Qui tieni le giocate che vuoi fare, le idee di strategia, le promo da sfruttare. Scrivi la prima qui sopra.'],
+      done:['Nessuna nota archiviata','Le note che spunti come fatte finiscono qui.'],
+      all:['Nessuna nota','Scrivi il primo appunto qui sopra: una giocata da valutare, un\'idea, un bonus da ricordare.'],
+      todo:['Nessuna giocata in lista','Segna qui le partite che vuoi seguire e le quote a cui giocheresti.'],
+      idea:['Nessuna idea salvata','Annota qui i ragionamenti sulla strategia, così non li perdi.'],
+      promo:['Nessuna promo segnata','Bonus, free bet e scadenze delle promozioni: tienili qui.']}[noteFilter];
+    empt.innerHTML=`<div class="empty"><div class="e-big">${msg[0]}</div><div class="e-sub">${msg[1]}</div></div>`;
+    return;
+  }
+  empt.innerHTML='';
+  host.innerHTML=list.map(n=>{
+    const bk=n.book?S.books.find(b=>b.id===n.book):null;
+    const due=noteDueInfo(n);
+    const cls=['nt',n.done?'done':'',(!n.done&&due&&due.cls==='late')?'late':((!n.done&&due&&due.cls==='soon')?'due':'')].filter(Boolean).join(' ');
+    return `<div class="${cls}">
+      <div class="nt-chk" data-toggle="${n.id}" title="${n.done?'Riapri':'Segna come fatta'}">✓</div>
+      <div class="nt-main">
+        <div class="nt-txt">${esc(n.text)}</div>
+        <div class="nt-meta">
+          <span class="nt-tag ${n.cat}">${NCAT[n.cat]||'Appunto'}</span>
+          ${bk?`<span>${esc(bk.name)}</span>`:''}
+          ${due&&!n.done?`<span class="nt-due ${due.cls}">${due.txt}</span>`:''}
+          ${n.created?`<span style="color:var(--muted-2)">scritta il ${new Date(n.created).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'})}</span>`:''}
+        </div>
+      </div>
+      <div class="nt-act">
+        <button class="rowbtn" data-editnote="${n.id}">Modifica</button>
+        <button class="rowbtn del" data-delnote="${n.id}">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function saveNote(){
+  const text=document.getElementById('n-text').value.trim();
+  if(!text){toast('Scrivi qualcosa nella nota',true);return;}
+  const cat=document.getElementById('n-cat').value;
+  const book=document.getElementById('n-book').value||null;
+  const due=document.getElementById('n-due').value||null;
+  if(editingNote){
+    const n=S.notes.find(x=>x.id===editingNote);
+    if(n){n.text=text;n.cat=cat;n.book=book;n.due=due;}
+    cancelNoteEdit();toast('Nota aggiornata');
+  }else{
+    S.notes.push({id:uid(),text,cat,book,due,done:false,created:new Date().toISOString()});
+    toast('Nota aggiunta');
+  }
+  document.getElementById('n-text').value='';
+  document.getElementById('n-due').value='';
+  await save();renderNotes();
+}
+function editNote(id){
+  const n=S.notes.find(x=>x.id===id);if(!n)return;editingNote=id;
+  document.getElementById('n-text').value=n.text;
+  document.getElementById('n-cat').value=n.cat||'nota';
+  document.getElementById('n-book').value=n.book||'';
+  document.getElementById('n-due').value=n.due||'';
+  document.getElementById('note-form-title').textContent='Modifica nota';
+  document.getElementById('n-save').textContent='Salva modifica';
+  document.getElementById('n-cancel').style.display='';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function cancelNoteEdit(){
+  editingNote=null;
+  document.getElementById('n-text').value='';
+  document.getElementById('n-due').value='';
+  document.getElementById('note-form-title').textContent='Nuova nota';
+  document.getElementById('n-save').textContent='Aggiungi nota';
+  document.getElementById('n-cancel').style.display='none';
+}
+async function toggleNote(id){
+  const n=S.notes.find(x=>x.id===id);if(!n)return;
+  n.done=!n.done;
+  await save();renderNotes();renderNoteBadge();
+}
+function renderNoteBadge(){
+  const tab=document.querySelector('[data-tab=notes]');if(!tab)return;
+  const open=S.notes.filter(n=>!n.done).length;
+  const late=S.notes.filter(n=>!n.done&&n.due&&n.due<todayISO()).length;
+  tab.innerHTML='Note'+(open?` <span style="font-family:var(--mono);font-size:10px;padding:1px 5px;border-radius:20px;background:${late?'rgba(255,90,90,.15)':'rgba(116,228,5,.13)'};color:${late?'var(--loss)':'var(--accent)'}">${open}</span>`:'');
+}
+
+/* ============================================================
+   EXCHANGE (conto separato, solo snapshot mensili)
+============================================================ */
+function exSorted(){return [...S.exchange.snaps].sort((a,b)=>(a.month||'').localeCompare(b.month||''));}
+function exMetrics(){
+  const E=S.exchange;
+  const cap=num(E.capital),units=num(E.units),stake0=num(E.startStake);
+  const snaps=exSorted();
+  const last=snaps.length?snaps[snaps.length-1]:null;
+  const prev=snaps.length>1?snaps[snaps.length-2]:null;
+  const current=last?num(last.balance):(cap||0);
+  const pl=cap>0||snaps.length?current-cap:0;
+  const roi=cap>0?pl/cap*100:null;
+  const unitNow=units>0?current/units:null;
+  const plUnits=stake0>0?pl/stake0:null;
+  const lastDelta=last?(prev?num(last.balance)-num(prev.balance):num(last.balance)-cap):null;
+  return {cap,units,stake0,snaps,current,pl,roi,unitNow,plUnits,last,lastDelta};
+}
+function renderExchange(){
+  const X=exMetrics();
+  const started=X.cap>0||X.snaps.length>0;
+  const kh=document.getElementById('ex-kpis');
+  if(!started){
+    kh.innerHTML='';
+    document.getElementById('ex-chart-card').style.display='none';
+  }else{
+    document.getElementById('ex-chart-card').style.display='';
+    kh.innerHTML=[
+      kpi('Capitale di partenza',eur(X.cap),S.exchange.start?'dal '+new Date(S.exchange.start).toLocaleDateString('it-IT'):'punto zero del conto','','Con quanti soldi sei partito sull\'Exchange','ex_cap'),
+      kpi('Saldo attuale',eur(X.current),X.last?'a inizio '+monthLabel(X.last.month):'nessuno snapshot ancora',signCls(X.pl),'L\'ultimo saldo di inizio mese registrato','ex_bal'),
+      kpi('P/L Exchange',(X.pl>=0?'+':'')+eur(X.pl),X.roi!==null?'ROI '+pct(X.roi):'',X.pl>0?'pos':(X.pl<0?'neg':''),'Saldo attuale meno capitale di partenza','ex_pl'),
+      kpi('Ultimo mese',X.lastDelta!==null?(X.lastDelta>=0?'+':'')+eur(X.lastDelta):'—',X.last?'variazione a inizio '+monthLabel(X.last.month):'',X.lastDelta>0?'pos':(X.lastDelta<0?'neg':''),'Differenza rispetto allo snapshot precedente','ex_month'),
+      kpi('Unità',X.units>0?String(X.units):'—',X.unitNow!==null?'valore attuale '+eur(X.unitNow):'imposta il numero di unità','','In quante unità dividi il banco','ex_units'),
+      kpi('Stake di partenza',X.stake0>0?eur(X.stake0):'—',X.unitNow!==null&&X.stake0>0?((X.unitNow>=X.stake0?'+':'')+pct((X.unitNow-X.stake0)/X.stake0*100)+' vs oggi'):'','','La tua unità iniziale','ex_stake'),
+      kpi('P/L in unità',X.plUnits!==null?(X.plUnits>=0?'+':'')+X.plUnits.toLocaleString('it-IT',{maximumFractionDigits:1})+' u':'—','sullo stake di partenza',X.plUnits>0?'pos':(X.plUnits<0?'neg':''),'Profitto/perdita espresso in unità di partenza','ex_plu'),
+    ].join('');
+  }
+  // tabella snapshot
+  const body=document.getElementById('ex-body'),empt=document.getElementById('ex-empty');
+  const rows=exSorted().reverse();
+  if(!rows.length){
+    body.closest('.card').style.display='none';
+    empt.innerHTML='<div class="empty"><div class="e-big">Nessun saldo registrato</div><div class="e-sub">A inizio mese apri Betfair, guarda il saldo e registralo qui sopra: bastano due numeri al mese per avere tutto l\'andamento.</div></div>';
+  }else{
+    body.closest('.card').style.display='';empt.innerHTML='';
+    const chron=exSorted();
+    body.innerHTML=rows.map(s=>{
+      const i=chron.findIndex(x=>x.id===s.id);
+      const base=i>0?num(chron[i-1].balance):(X.cap>0?X.cap:null);
+      const d=base!==null?num(s.balance)-base:null;
+      const dp=base?d/base*100:null;
+      const uv=X.units>0?num(s.balance)/X.units:null;
+      return `<tr>
+        <td class="l" style="font-family:var(--disp)">${monthLabel(s.month)}</td>
+        <td>${eur(num(s.balance))}</td>
+        <td class="${d!==null?signCls(d):''}">${d!==null?(d>=0?'+':'')+eur(d):'—'}</td>
+        <td class="${dp!==null?signCls(dp):''}" style="color:${dp===null?'var(--muted-2)':''}">${dp!==null?pct(dp):'—'}</td>
+        <td style="color:var(--muted)">${uv!==null?eur(uv):'—'}</td>
+        <td><button class="rowbtn del" data-delsnap="${s.id}">Elimina</button></td>
+      </tr>`;
+    }).join('');
+  }
+  if(document.getElementById('p-exchange').classList.contains('active'))drawExChart();
+}
+function drawExChart(){
+  const X=exMetrics();
+  const pts=[];
+  if(X.cap>0)pts.push({label:'inizio',v:X.cap});
+  exSorted().forEach(s=>pts.push({label:monthLabel(s.month),v:num(s.balance)}));
+  const cv=document.getElementById('ex-chart');const dpr=window.devicePixelRatio||1;
+  const w=cv.clientWidth||600,h=200;cv.width=w*dpr;cv.height=h*dpr;
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+  if(pts.length<2){ctx.fillStyle='#5A6E8A';ctx.font="13px 'Space Grotesk',sans-serif";ctx.textAlign='center';ctx.fillText('Registra almeno un saldo mensile per vedere il grafico',w/2,h/2);return;}
+  const padL=54,padR=14,padT=14,padB=24;
+  const vals=pts.map(p=>p.v);let min=Math.min(...vals),max=Math.max(...vals);
+  if(min===max){min-=1;max+=1;}const span=max-min;min-=span*0.12;max+=span*0.12;
+  const X_=i=>padL+(w-padL-padR)*(pts.length>1?i/(pts.length-1):0);
+  const Y_=v=>padT+(h-padT-padB)*(1-(v-min)/(max-min));
+  ctx.font="10px 'JetBrains Mono',monospace";ctx.textAlign='right';ctx.textBaseline='middle';
+  for(let g=0;g<=3;g++){const val=min+(max-min)*g/3,y=Y_(val);
+    ctx.strokeStyle='rgba(30,64,102,.55)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(w-padR,y);ctx.stroke();
+    ctx.fillStyle='#5A6E8A';ctx.fillText('€'+Math.round(val),padL-8,y);}
+  if(X.cap>0){const yc=Y_(X.cap);ctx.strokeStyle='rgba(130,150,176,.45)';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(padL,yc);ctx.lineTo(w-padR,yc);ctx.stroke();ctx.setLineDash([]);}
+  const grad=ctx.createLinearGradient(0,padT,0,h-padB);grad.addColorStop(0,'rgba(116,228,5,.22)');grad.addColorStop(1,'rgba(116,228,5,0)');
+  ctx.beginPath();ctx.moveTo(X_(0),Y_(pts[0].v));pts.forEach((p,i)=>ctx.lineTo(X_(i),Y_(p.v)));
+  ctx.lineTo(X_(pts.length-1),h-padB);ctx.lineTo(X_(0),h-padB);ctx.closePath();ctx.fillStyle=grad;ctx.fill();
+  ctx.beginPath();ctx.moveTo(X_(0),Y_(pts[0].v));pts.forEach((p,i)=>ctx.lineTo(X_(i),Y_(p.v)));
+  ctx.strokeStyle='#74E405';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();
+  ctx.fillStyle='#74E405';pts.forEach((p,i)=>{ctx.beginPath();ctx.arc(X_(i),Y_(p.v),3,0,7);ctx.fill();});
+  // etichette mese sull'asse X (prima, ultima e ~ogni n)
+  ctx.fillStyle='#5A6E8A';ctx.textAlign='center';ctx.textBaseline='top';
+  const step=Math.max(1,Math.ceil(pts.length/6));
+  pts.forEach((p,i)=>{if(i===0||i===pts.length-1||i%step===0)ctx.fillText(p.label,X_(i),h-padB+6);});
+}
+async function saveExSettings(){
+  S.exchange.capital=num(document.getElementById('ex-capital').value)||null;
+  S.exchange.start=document.getElementById('ex-start').value||null;
+  S.exchange.units=num(document.getElementById('ex-units').value)||null;
+  S.exchange.startStake=num(document.getElementById('ex-stake').value)||null;
+  await save();renderExchange();toast('Impostazioni Exchange salvate');
+}
+async function saveExSnap(){
+  const month=document.getElementById('ex-month').value;
+  const bal=document.getElementById('ex-bal').value;
+  if(!month){toast('Scegli il mese',true);return;}
+  if(bal===''||bal===null){toast('Inserisci il saldo',true);return;}
+  const v=num(bal);
+  const ex=S.exchange.snaps.find(s=>s.month===month);
+  if(ex){ex.balance=v;toast('Saldo di '+monthLabel(month)+' aggiornato');}
+  else{S.exchange.snaps.push({id:uid(),month,balance:v});toast('Saldo di '+monthLabel(month)+' registrato');}
+  document.getElementById('ex-bal').value='';
+  await save();renderExchange();
+}
+function exUnitsHint(){
+  const cap=num(document.getElementById('ex-capital').value),u=num(document.getElementById('ex-units').value);
+  const h=document.getElementById('ex-stake-hint');
+  h.textContent=(cap>0&&u>0)?('suggerito: '+eur(cap/u)+' (capitale ÷ unità)'):'la tua unità iniziale';
+}
+
+/* ============================================================
+   SPIEGAZIONE METRICHE (click su una KPI)
+============================================================ */
+const n2=v=>Number(v).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
+const n1=v=>Number(v).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1});
+
+const KPI_INFO={
+  /* ---------- PANORAMICA ---------- */
+  pl:{name:'P/L realizzato',
+    what:'I soldi che hai <b>davvero</b> guadagnato o perso con le giocate già chiuse. È il numero più onesto che c\'è: nessuna percentuale, nessuna base di calcolo, solo euro.',
+    how:'somma dei profitti e delle perdite di ogni giocata chiusa',
+    ex:M=>`Punti 10€ a quota 2,00 e vinci: <b>+10€</b>. Punti 10€ e perdi: <b>−10€</b>. Il P/L è la somma di tutte queste righe.<br><br>Al momento hai <b>${M.nSettled}</b> giocate chiuse, totale <b>${(M.realized>=0?'+':'')+eur(M.realized)}</b>.`,
+    note:'Le giocate ancora in corso non entrano nel conto: entrano solo quando le chiudi. Le giocate bonus contano solo per quello che ti fanno vincere, perché se perdono non ti tolgono soldi tuoi.'},
+
+  roi:{name:'ROI',
+    what:'Quanto sta <b>rendendo il capitale che hai deciso di dedicare</b> al gioco. È lo sguardo da investitore: non ti dice se giochi bene, ti dice se il progetto nel suo insieme sta producendo.',
+    how:M=>M.poolMode?'P/L ÷ banco che ti sei dato':'P/L ÷ capitale netto immesso',
+    ex:M=>{
+      const b=M.capital||1000;
+      return `Con un banco di <b>${eur(b)}</b> e un profitto di <b>+${n2(b*0.1)}€</b> il ROI è <b>10%</b>.<br><br>Tuo: ${(M.realized>=0?'+':'')+eur(M.realized)} ÷ ${eur(M.capital)} = <b>${M.capital>0?pct(M.roi):'—'}</b>.`;},
+    note:'Attenzione: il ROI usa il <b>capitale</b>, non quanto hai puntato. Se tieni fermi i soldi il ROI resta basso anche se giochi benissimo — per giudicare la tua bravura guarda lo Yield. E se cambi il banco, il ROI cambia base e non è più confrontabile con prima.'},
+
+  yield:{name:'Yield',
+    what:'La metrica della tua <b>bravura</b>: quanto ti rende in media ogni euro che punti. Non le importa quanto capitale hai o quanto tieni fermo, guarda solo le giocate.',
+    how:'P/L ÷ totale puntato con soldi tuoi (esclusi i bonus)',
+    ex:M=>`Se in un anno punti in totale <b>2.000€</b> (gli stessi soldi girano: giochi, rivinci, ripunti) e chiudi con <b>+100€</b>, lo yield è <b>5%</b> — anche se eri partito da soli 100€.<br><br>Tuo: ${(M.realized>=0?'+':'')+eur(M.realized)} ÷ ${eur(M.turnover)} giocati = <b>${M.turnover>0?pct(M.yield_):'—'}</b>.`,
+    note:'Questo è quello che nel gergo delle scommesse molti chiamano "ROI". Sopra il 5% su tanti eventi è considerato ottimo. Serve un buon numero di giocate perché diventi affidabile: su 10 schedine dice poco.'},
+
+  winrate:{name:'% vincenti',
+    what:'Quante giocate vinci sul totale di quelle decise. <b>Da sola non dice se guadagni</b>: dipende sempre dalle quote a cui giochi.',
+    how:'vinte ÷ (vinte + perse) × 100',
+    ex:M=>`Vinci 3 su 10 a quota 5,00 → 30% di vincenti ma sei in <b>forte profitto</b>. Vinci 8 su 10 a quota 1,10 → 80% di vincenti ma sei in <b>perdita</b>.<br><br>Tuo: ${M.nWon}V su ${M.nWon+M.nLost} decise = <b>${(M.nWon+M.nLost)>0?pct(M.winRate):'—'}</b>.`,
+    note:'Void e giocate in corso sono escluse dal conto. Leggila sempre insieme alla quota media: le due insieme ti dicono se il tuo stile ha senso.'},
+
+  volume:{name:'Volume giocato',
+    what:'Quanti euro sono passati per le tue schedine, sommando puntata dopo puntata. Non sono soldi persi né soldi tuoi in più: sono <b>gli stessi soldi che girano</b>.',
+    how:'somma delle puntate delle giocate chiuse, fatte con soldi tuoi',
+    ex:M=>`Con 100€ puoi generare un volume di 10.000€ se giochi e rigiochi gli stessi soldi tutto l\'anno. Il volume misura <b>quanto hai giocato</b>, non quanto hai messo.<br><br>Tuo: <b>${eur(M.turnover)}</b> su ${M.nSettled} giocate chiuse, media <b>${eur(M.avgStake)}</b> a schedina.`,
+    note:'È la base con cui si calcola lo Yield. Le giocate bonus sono escluse perché non muovono soldi tuoi.'},
+
+  avgodds:{name:'Quota media',
+    what:'La media delle quote a cui giochi. Descrive il tuo <b>stile</b>: quote basse = tante vincite ma piccole, quote alte = poche vincite ma grosse.',
+    how:'media aritmetica di tutte le quote inserite',
+    ex:M=>`Quota media 1,50 → per andare in pari devi vincere circa il <b>67%</b> delle volte. Quota media 3,00 → ti basta vincere il <b>33%</b>.<br><br>Tua: <b>${M.avgOdds?n2(M.avgOdds):'—'}</b> → pareggi vincendo circa il <b>${M.avgOdds?Math.round(100/M.avgOdds):'—'}%</b> delle giocate.`,
+    note:'Confrontala con la tua % di vincenti: se la % vincenti supera la soglia di pareggio della quota media, stai battendo il banco.'},
+
+  sharpe:{name:'Sharpe',
+    what:'Quanto è <b>regolare</b> il tuo rendimento. Misura quanto guadagni in rapporto a quanto ballano i risultati: alto = utili costanti, basso = montagne russe.',
+    how:'rendimento medio per giocata ÷ deviazione standard dei rendimenti',
+    ex:M=>`Due giocatori guadagnano entrambi +100€. Il primo con tante piccole vincite regolari → Sharpe <b>alto</b>. Il secondo perdendo per mesi e poi centrando una quota 50 → Sharpe <b>basso</b>: stesso profitto, molto più rischio.<br><br>Tuo: <b>${M.sharpe!==null?n2(M.sharpe):'—'}</b>${M.sharpe===null?' (servono almeno 2 giocate chiuse)':''}.`,
+    note:'Sopra 0 vuol dire in utile. È un indicatore statistico preso in prestito dalla finanza: con poche giocate è molto ballerino, prendilo sul serio solo dopo qualche decina di schedine.'},
+
+  kelly:{name:'Kelly storico',
+    what:'La frazione di bankroll che la matematica suggerirebbe di puntare, <b>stimata sul tuo storico</b>. Se esce 0% significa che i tuoi numeri finora non mostrano un vantaggio sul banco.',
+    how:'(quota netta media × % vittorie − % sconfitte) ÷ quota netta media',
+    ex:M=>{
+      const b=M.capital||1000;
+      return `Se Kelly dice <b>2%</b> e il tuo bankroll è <b>${eur(b)}</b>, la puntata "teorica" sarebbe <b>${eur(b*0.02)}</b>.<br><br>Tuo: <b>${M.kelly!==null?pct(M.kelly):'—'}</b>${M.kelly===null?' (servono almeno 5 giocate decise)':''}.`;},
+    note:'Da prendere con le pinze: Kelly assume di conoscere davvero le proprie probabilità, mentre qui sono stimate sul passato — e il passato non garantisce il futuro. Chi lo usa sul serio punta metà o un quarto di quanto suggerisce. Non è un consiglio di gioco.'},
+
+  dd:{name:'Max drawdown',
+    what:'La <b>botta più grossa</b> che hai preso: quanto è sceso il bankroll dal punto più alto al punto più basso successivo. Ti dice cosa devi essere pronto a sopportare.',
+    how:'massimo picco raggiunto − minimo toccato dopo quel picco',
+    ex:M=>`Sali a 1.200€, scendi a 950€, poi risali a 1.300€: il drawdown massimo è <b>250€</b>, e resta a bilancio anche se poi ti rifai.<br><br>Tuo: <b>${eur(M.maxDD)}</b>.`,
+    note:'Non è una perdita definitiva, è la discesa peggiore del percorso. Se il tuo drawdown si avvicina al banco, gli stake sono troppo alti per la tua variabilità.'},
+
+  streak:{name:'Streak attuale',
+    what:'La serie di risultati uguali che stai infilando adesso: <b>V</b> = vittorie di fila, <b>P</b> = perdite di fila.',
+    how:'conta i risultati consecutivi dello stesso segno, dalla più recente indietro',
+    ex:M=>`"<b>4P</b>" vuol dire quattro perse consecutive. Con quota media 2,00 capita circa una volta ogni 16 giocate: è <b>normale statistica</b>, non un segnale.<br><br>Tua: <b>${M.streakTxt}</b>.`,
+    note:'Le serie negative sono la trappola psicologica classica: è lì che scatta la voglia di rincorrere alzando lo stake. Il tuo tetto di capitale esiste esattamente per quei momenti.'},
+
+  beststreak:{name:'Miglior streak',
+    what:'La più lunga serie di vittorie consecutive che hai mai messo insieme, con accanto la peggiore serie di perdite.',
+    how:'serie di vittorie di fila più lunga di tutto lo storico',
+    ex:M=>`Tua migliore: <b>${M.bestWin?M.bestWin+' vittorie di fila':'—'}</b>. Peggiore: <b>${M.bestLoss?M.bestLoss+' perse di fila':'—'}</b>.<br><br>Serve come metro di realtà: se il tuo peggior periodo è stato ${M.bestLoss||'X'} perse di fila, devi poter reggere almeno altrettanto senza andare in difficoltà.`,
+    note:'Sono record storici, non previsioni: prima o poi arriverà una serie negativa più lunga di quella che hai già visto.'},
+
+  bonus:{name:'Giocate bonus',
+    what:'Quante giocate hai segnato come bonus o free bet. Sono trattate a parte perché <b>non rischiano soldi tuoi</b>.',
+    how:'conteggio delle giocate con la spunta bonus',
+    ex:M=>`Free bet da 10€ a quota 2,00: se vince incassi <b>+10€</b> di profitto (la puntata non torna), se perde il tuo saldo <b>non cala</b>.<br><br>Tue: <b>${M.nBonus}</b> giocate bonus.`,
+    note:'Per questo sono escluse da yield, volume e Kelly: falserebbero le medie facendoti sembrare più bravo di quanto sei.'},
+
+  /* ---------- EXCHANGE ---------- */
+  ex_cap:{name:'Capitale di partenza',
+    what:'Con quanti soldi sei partito sul conto Betfair Exchange. È il <b>punto zero</b> da cui si misura tutto il resto di questa scheda.',
+    how:'valore che imposti tu qui sopra',
+    ex:X=>`Se parti con <b>${eur(X.cap||500)}</b>, ogni saldo che registrerai verrà confrontato con questa cifra.`,
+    note:'Questo conto vive per conto suo: non entra nel bankroll, nel P/L né nelle statistiche del resto dell\'app.'},
+
+  ex_bal:{name:'Saldo attuale',
+    what:'L\'ultimo saldo di inizio mese che hai registrato. È la <b>fotografia più recente</b> del conto, non un valore in tempo reale.',
+    how:'saldo dello snapshot mensile più recente',
+    ex:X=>`Tuo: <b>${eur(X.current)}</b>${X.last?` (inizio ${monthLabel(X.last.month)})`:''}. Se oggi su Betfair vedi una cifra diversa è normale: qui aggiorni una volta al mese.`,
+    note:'Registra il saldo sempre nello stesso momento, il primo del mese, così i confronti mese su mese restano puliti.'},
+
+  ex_pl:{name:'P/L Exchange',
+    what:'Quanto hai guadagnato o perso sull\'Exchange da quando sei partito.',
+    how:'saldo attuale − capitale di partenza',
+    ex:X=>`Parti con ${eur(X.cap||500)}, oggi hai ${eur(X.current||600)} → P/L <b>${(X.pl>=0?'+':'')+eur(X.pl)}</b>${X.roi!==null?`, cioè un ROI del <b>${pct(X.roi)}</b> sul capitale di partenza`:''}.`,
+    note:'Vale solo se non hai versato o prelevato sul conto. Se lo fai, aggiorna il capitale di partenza di conseguenza, altrimenti il P/L conta come "vincita" dei soldi che hai semplicemente aggiunto.'},
+
+  ex_month:{name:'Ultimo mese',
+    what:'Quanto è cambiato il conto tra i due saldi mensili più recenti.',
+    how:'ultimo saldo − saldo del mese precedente',
+    ex:X=>`Inizio giugno 500€, inizio luglio 540€ → <b>+40€</b> nel mese di giugno.<br><br>Tuo: <b>${X.lastDelta!==null?(X.lastDelta>=0?'+':'')+eur(X.lastDelta):'—'}</b>.`,
+    note:'Il primo mese viene confrontato col capitale di partenza.'},
+
+  ex_units:{name:'Unità',
+    what:'In quante parti dividi il banco. Serve a ragionare in <b>unità invece che in euro</b>: così lo stake si adatta da solo alla dimensione del conto.',
+    how:'valore che imposti tu · valore attuale = saldo ÷ unità',
+    ex:X=>{
+      const u=X.units||100,c=X.cap||500;
+      return `Banco ${eur(c)} diviso in <b>${u}</b> unità → una unità vale <b>${eur(c/u)}</b>. Se il conto cresce a ${eur(c*1.2)}, l\'unità diventa <b>${eur(c*1.2/u)}</b> senza che tu cambi nulla.${X.unitNow!==null?`<br><br>Tua unità oggi: <b>${eur(X.unitNow)}</b>.`:''}`;},
+    note:'È il metodo classico per non aumentare il rischio quando vinci e non affondare quando perdi: la puntata segue il conto in proporzione.'},
+
+  ex_stake:{name:'Stake di partenza',
+    what:'La tua unità iniziale in euro, fissata quando sei partito. Serve come <b>pietra di paragone</b>: confrontandola col valore attuale dell\'unità vedi quanto è cresciuto il banco.',
+    how:'valore che imposti tu (di solito capitale ÷ unità)',
+    ex:X=>{
+      const s=X.stake0||5;
+      return `Stake di partenza <b>${eur(s)}</b>. Se oggi l\'unità vale ${eur(s*1.2)} significa che il banco è cresciuto del <b>20%</b> e le tue puntate sono cresciute con lui.${X.unitNow!==null&&X.stake0>0?`<br><br>Tuo: da ${eur(X.stake0)} a <b>${eur(X.unitNow)}</b> (${(X.unitNow>=X.stake0?'+':'')+pct((X.unitNow-X.stake0)/X.stake0*100)}).`:''}`;},
+    note:'Se preferisci puntare sempre la stessa cifra fissa, ignora il valore attuale dell\'unità e tieni questo come riferimento.'},
+
+  ex_plu:{name:'P/L in unità',
+    what:'Il profitto espresso in <b>unità invece che in euro</b>. È il modo in cui si confrontano periodi diversi o giocatori con banche diverse.',
+    how:'P/L ÷ stake di partenza',
+    ex:X=>`Con stake di partenza 5€ e profitto +50€ → <b>+10 unità</b>. Chi gioca a 50€ di stake e guadagna +500€ ha fatto le stesse <b>+10 unità</b>: stessa bravura, banco diverso.<br><br>Tuo: <b>${X.plUnits!==null?(X.plUnits>=0?'+':'')+n1(X.plUnits)+' u':'—'}</b>.`,
+    note:'È l\'unità di misura standard con cui i tipster dichiarano i risultati, proprio perché non dipende da quanti soldi uno ha.'},
+};
+
+function openKpiInfo(key,ctx){
+  const I=KPI_INFO[key];if(!I)return;
+  const M=ctx||computeMetrics();
+  const valEl=document.querySelector(`[data-kpi="${key}"] .k-val`);
+  const clsEl=document.querySelector(`[data-kpi="${key}"]`);
+  document.getElementById('kb-name').textContent=I.name;
+  const v=document.getElementById('kb-val');
+  v.textContent=valEl?valEl.textContent:'';
+  v.className='kb-v num '+(clsEl&&clsEl.classList.contains('pos')?'gain':(clsEl&&clsEl.classList.contains('neg')?'loss':''));
+  const how=typeof I.how==='function'?I.how(M):I.how;
+  const ex=typeof I.ex==='function'?I.ex(M):I.ex;
+  document.getElementById('kb-body').innerHTML=`
+    <div class="kb-sec"><div class="kb-lab">Che cos'è</div><div class="kb-txt">${I.what}</div></div>
+    <div class="kb-sec"><div class="kb-lab">Come si calcola</div><div class="kb-form">${how}</div></div>
+    <div class="kb-sec"><div class="kb-lab">Esempio</div><div class="kb-ex">${ex}</div></div>
+    ${I.note?`<div class="kb-sec"><div class="kb-note">${I.note}</div></div>`:''}`;
+  document.getElementById('kpi-overlay').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+function closeKpiInfo(){document.getElementById('kpi-overlay').classList.remove('show');document.body.style.overflow='';}
+
+/* ============================================================
+   MASTER RENDER
+============================================================ */
+function fillBookSelects(){
+  const opts='<option value="">— seleziona —</option>'+S.books.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('');
+  ['b-book','m-book'].forEach(id=>{const el=document.getElementById(id);const v=el.value;el.innerHTML=opts;el.value=v;});
+  const fopts='<option value="">Tutti i bookmaker</option>'+S.books.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('');
+  ['f-book','fm-book'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const v=el.value;el.innerHTML=fopts;el.value=v;});
+  const nel=document.getElementById('n-book');
+  if(nel){const v=nel.value;nel.innerHTML='<option value="">—</option>'+S.books.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('');nel.value=v;}
+}
+function renderRecovery(M){
+  const host=document.getElementById('recovery-card');
+  const base=M.poolMode?'il tuo banco':'il capitale che hai immesso';
+  // ---- Sotto il punto di partenza: c'è qualcosa da recuperare ----
+  if(M.deficit>0){
+    const ratio=M.lostAtWorst>0?Math.max(0,Math.min(1,M.clawedBack/M.lostAtWorst)):0;
+    host.innerHTML=`<div class="card card-pad" style="margin-bottom:14px;border-color:var(--accent-dim)">
+      <div class="chart-head" style="margin-bottom:10px">
+        <span class="sec-title">Obiettivo di recupero</span>
+        <span class="chip c-pending">Sotto il via</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px">
+        <span class="num" style="font-size:28px;font-weight:600;color:var(--loss)">${eur(M.deficit)}</span>
+        <span style="color:var(--muted);font-size:13px">bankroll <b class="num">${eur(M.bankroll)}</b> su ${eur(M.capital)} di partenza</span>
+      </div>
+      <div class="bar"><span style="width:${ratio*100}%"></span></div>
+      <div style="margin-top:11px;color:var(--muted);font-size:12px;line-height:1.55">
+        Le giocate hanno bruciato <b class="num loss">${eur(M.deficit)}</b> rispetto a ${base} di <b class="num" style="color:var(--text)">${eur(M.capital)}</b>: ti serve questo profitto per tornare in pari. I soldi caricati sui book <b style="color:var(--text)">non</b> sono da recuperare — sono tuoi e li puoi riprelevare.${M.lostAtWorst>M.deficit?` Dal punto peggiore (${eur(M.worstPoint)}) hai già risalito <b class="num gain">${eur(M.clawedBack)}</b>.`:''}
+      </div>
+    </div>`;
+    return;
+  }
+  // ---- In pari o in attivo ----
+  if(M.surplus>0){
+    host.innerHTML=`<div class="card card-pad" style="margin-bottom:14px;border-color:var(--gain)">
+      <div class="chart-head" style="margin-bottom:8px"><span class="sec-title">Obiettivo di recupero</span><span class="chip c-won">In attivo ✓</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px">
+        <span class="num gain" style="font-size:28px;font-weight:600">+${eur(M.surplus)}</span>
+        <span style="color:var(--muted);font-size:13px">bankroll <b class="num">${eur(M.bankroll)}</b> su ${eur(M.capital)} di partenza</span>
+      </div>
+      <div class="bar"><span style="width:100%;background:linear-gradient(90deg,var(--gain),#A6F55C)"></span></div>
+      <div style="margin-top:11px;color:var(--muted);font-size:12px;line-height:1.55">
+        Niente da recuperare: sei sopra ${base} di partenza di <b class="num gain">${eur(M.surplus)}</b>. Questo è profitto vero, non capitale che rientra.${M.lostAtWorst>0?` Nel percorso eri sceso fino a ${eur(M.worstPoint)}.`:''}
+      </div>
+    </div>`;
+    return;
+  }
+  // ---- Esattamente al via (nessuna giocata chiusa) ----
+  if(M.capital>0){
+    host.innerHTML=`<div class="card card-pad" style="margin-bottom:14px">
+      <div class="chart-head" style="margin-bottom:8px"><span class="sec-title">Obiettivo di recupero</span><span class="chip c-void">In pari</span></div>
+      <div style="color:var(--muted);font-size:12.5px;line-height:1.55">
+        Sei esattamente al punto di partenza: bankroll <b class="num" style="color:var(--text)">${eur(M.bankroll)}</b> su ${eur(M.capital)}. Qui comparirà quanto devi rivincere solo se le giocate scenderanno sotto questa cifra${M.poolMode?` — caricare soldi sui book non conta, quelli restano tuoi.`:'.'}
+      </div>
+    </div>`;
+    return;
+  }
+  host.innerHTML='';
+}
+const MONTHS=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+function computeStats(){
+  const bets=S.bets;
+  const totalStaked=bets.reduce((a,b)=>a+num(b.stake),0);
+  const nBets=bets.length;
+  const settled=bets.filter(isSettled);
+  const stakes=bets.map(b=>num(b.stake)).filter(s=>s>0);
+  const maxStake=stakes.length?Math.max(...stakes):0;
+  let maxWin=0,maxLoss=0,bestOddsWon=0;
+  settled.forEach(b=>{const p=betProfit(b);if(p>maxWin)maxWin=p;if(p<maxLoss)maxLoss=p;
+    if(b.status==='won'&&num(b.odds)>bestOddsWon)bestOddsWon=num(b.odds);});
+  const bonusProfit=settled.filter(b=>b.bonus).reduce((a,b)=>a+betProfit(b),0);
+  const dates=bets.map(b=>b.date).filter(Boolean).sort();
+  const firstDate=dates[0],lastDate=dates[dates.length-1];
+  let daysActive=0,perWeek=0;
+  if(firstDate){const d2=new Date(lastDate||firstDate),d1=new Date(firstDate);daysActive=Math.max(1,Math.round((d2-d1)/86400000)+1);perWeek=nBets/(daysActive/7);}
+  const typeMap={};
+  bets.forEach(b=>{const t=b.type||'Altro';const m=typeMap[t]=(typeMap[t]||{n:0,staked:0,pl:0,won:0,dec:0});
+    m.n++;m.staked+=num(b.stake);if(isSettled(b)){m.pl+=betProfit(b);if(b.status==='won'){m.won++;m.dec++;}else if(b.status==='lost')m.dec++;}});
+  const byType=Object.entries(typeMap).map(([t,m])=>({type:t,...m,winRate:m.dec?m.won/m.dec*100:0})).sort((a,b)=>b.n-a.n);
+  const monMap={};
+  bets.forEach(b=>{if(!b.date)return;const k=b.date.slice(0,7);const m=monMap[k]=(monMap[k]||{n:0,staked:0,pl:0});m.n++;m.staked+=num(b.stake);if(isSettled(b))m.pl+=betProfit(b);});
+  const byMonth=Object.entries(monMap).map(([k,m])=>({month:k,...m})).sort((a,b)=>b.month.localeCompare(a.month));
+  const bkCount={};bets.forEach(b=>{bkCount[b.book]=(bkCount[b.book]||0)+1;});
+  let favBook=null,favN=0;Object.entries(bkCount).forEach(([id,n])=>{if(n>favN){favN=n;favBook=id;}});
+  return {totalStaked,nBets,maxStake,maxWin,maxLoss,bestOddsWon,bonusProfit,daysActive,perWeek,firstDate,byType,byMonth,
+    favBook:favBook?bookName(favBook):'—',favN,nSettled:settled.length};
+}
+function monthLabel(k){const [y,m]=k.split('-');return MONTHS[parseInt(m,10)-1]+' '+y;}
+function renderStats(){
+  const T=computeStats();
+  document.getElementById('stats-kpis').innerHTML=[
+    kpi('Totale giocato',eur(T.totalStaked),`${T.nBets} schedine`,'','Somma di tutte le puntate mai fatte, incluse bonus e in corso'),
+    kpi('Schedine totali',String(T.nBets),`${T.nSettled} chiuse`,'','Numero di giocate registrate'),
+    kpi('Puntata più alta',eur(T.maxStake),'singola giocata','',''),
+    kpi('Vincita più alta',(T.maxWin>0?'+':'')+eur(T.maxWin),'singola schedina',T.maxWin>0?'pos':'','Il profitto più alto ottenuto da una singola giocata'),
+    kpi('Perdita più alta',eur(T.maxLoss),'singola schedina',T.maxLoss<0?'neg':'','La perdita più grande su una singola giocata'),
+    kpi('Quota più alta vinta',T.bestOddsWon?T.bestOddsWon.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}):'—','colpo migliore',T.bestOddsWon?'pos':'',''),
+    kpi('Profitto da bonus',(T.bonusProfit>=0?'+':'')+eur(T.bonusProfit),'con le free bet',T.bonusProfit>0?'pos':'','Quanto hai guadagnato dalle giocate segnate come bonus'),
+    kpi('Ritmo di gioco',T.perWeek?T.perWeek.toLocaleString('it-IT',{maximumFractionDigits:1})+'/sett.':'—',T.daysActive?T.daysActive+' giorni attivo':'','Media di schedine a settimana da quando hai iniziato'),
+    kpi('Book preferito',T.favBook,T.favN?T.favN+' schedine':'','','Il bookmaker su cui giochi di più'),
+  ].join('');
+  // by type
+  const tb=document.getElementById('stats-type'),tbe=document.getElementById('stats-type-empty');
+  if(!T.byType.length){tb.closest('.card').style.display='none';tbe.innerHTML='<div class="empty"><div class="e-sub">Nessuna giocata ancora.</div></div>';}
+  else{tb.closest('.card').style.display='';tbe.innerHTML='';
+    tb.innerHTML=T.byType.map(r=>`<tr>
+      <td class="l" style="font-family:var(--disp);font-weight:500">${esc(r.type)}</td>
+      <td>${r.n}</td><td>${eur(r.staked)}</td>
+      <td style="color:var(--muted)">${r.dec?pct(r.winRate):'—'}</td>
+      <td class="${signCls(r.pl)}">${(r.pl>=0?'+':'')+eur(r.pl)}</td></tr>`).join('');}
+  // by month
+  const mb=document.getElementById('stats-month'),mbe=document.getElementById('stats-month-empty');
+  if(!T.byMonth.length){mb.closest('.card').style.display='none';mbe.innerHTML='<div class="empty"><div class="e-sub">Aggiungi giocate con una data per vedere l\'andamento mensile.</div></div>';}
+  else{mb.closest('.card').style.display='';mbe.innerHTML='';
+    mb.innerHTML=T.byMonth.map(r=>`<tr>
+      <td class="l" style="font-family:var(--disp)">${monthLabel(r.month)}</td>
+      <td>${r.n}</td><td>${eur(r.staked)}</td>
+      <td class="${signCls(r.pl)}">${(r.pl>=0?'+':'')+eur(r.pl)}</td></tr>`).join('');}
+}
+/* ============================================================
+   1) CHIUSURA RAPIDA (Panoramica)
+============================================================ */
+function renderQuickSettle(){
+  const host=document.getElementById('quick-settle');
+  const pend=S.bets.filter(b=>b.status==='pending')
+    .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  if(!pend.length){host.innerHTML='';return;}
+  const show=pend.slice(0,6);
+  const rows=show.map(b=>{
+    const bk=S.books.find(x=>x.id===b.book);
+    const st=num(b.stake),od=num(b.odds);
+    const win=b.bonus?st*(od-1):st*od;
+    return `<div class="qs-row">
+      <div class="qs-info">
+        <div class="qs-desc">${esc(b.desc||b.type||'Giocata')}</div>
+        <div class="qs-meta">
+          <span>${esc(b.type||'')}</span>
+          ${bk?`<span>${esc(bk.name)}</span>`:''}
+          <span class="num">${eur(st)} @ ${od?od.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}):'—'}</span>
+          ${b.bonus?'<span style="color:var(--accent)">bonus</span>':''}
+          <span>${b.date?new Date(b.date+'T00:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'}):''}</span>
+          <span class="num" style="color:var(--gain)">se vince +${eur(betProfit({...b,status:'won'}))}</span>
+        </div>
+      </div>
+      <div class="qs-act">
+        <button class="qs-b w" data-settle="${b.id}" data-res="won">Vinta</button>
+        <button class="qs-b l" data-settle="${b.id}" data-res="lost">Persa</button>
+        <button class="qs-b" data-cashout="${b.id}" title="Chiudi con cashout">Cashout</button>
+        <button class="qs-b" data-settle="${b.id}" data-res="void" title="Rimborsata">Void</button>
+      </div>
+    </div>`;
+  }).join('');
+  const totStake=pend.reduce((a,b)=>a+(b.bonus?0:num(b.stake)),0);
+  host.innerHTML=`<div class="qs">
+    <div class="chart-head" style="margin-bottom:6px">
+      <span class="sec-title">Da chiudere · ${pend.length} in corso</span>
+      <span class="sec-title num" style="color:var(--muted-2)">${eur(totStake)} impegnati</span>
+    </div>
+    ${rows}
+    ${pend.length>show.length?`<div class="qs-more">altre ${pend.length-show.length} in attesa — le trovi nella scheda Giocate</div>`:''}
+  </div>`;
+}
+function cashoutDialog(bet){
+  return new Promise(resolve=>{
+    const ov=document.getElementById('cashout-overlay');
+    const st=num(bet.stake),od=num(bet.odds);
+    const potential=(bet.payout!==undefined&&bet.payout!==null&&bet.payout!=='')?num(bet.payout):st*od;
+    document.getElementById('cashout-msg').innerHTML=`<b>${esc(bet.desc||bet.type||'Giocata')}</b><br><span style="color:var(--muted);font-size:12.5px">Puntata ${eur(st)} · a fine corsa varrebbe ${eur(potential)}</span>`;
+    const amt=document.getElementById('cashout-amt');
+    const hint=document.getElementById('cashout-hint');
+    amt.value='';hint.textContent='';
+    ov.style.display='flex';
+    setTimeout(()=>amt.focus(),50);
+    const upd=()=>{
+      const v=num(amt.value);
+      if(v>0){const p=v-st;hint.innerHTML=`profitto <b style="color:${p>=0?'var(--gain)':'var(--loss)'}">${(p>=0?'+':'')+eur(p)}</b> rispetto alla puntata`;}
+      else hint.textContent='';
+    };
+    const ok=document.getElementById('cashout-ok'),cancel=document.getElementById('cashout-cancel');
+    const close=(val)=>{ov.style.display='none';amt.oninput=null;ok.onclick=null;cancel.onclick=null;ov.onclick=null;resolve(val);};
+    amt.oninput=upd;
+    ok.onclick=()=>{const v=num(amt.value);if(v<0){hint.innerHTML='<span style="color:var(--loss)">Inserisci un importo valido</span>';return;}close(v);};
+    cancel.onclick=()=>close(null);
+    ov.onclick=e=>{if(e.target===ov)close(null);};
+  });
+}
+async function quickCashout(id){
+  const b=S.bets.find(x=>x.id===id);if(!b)return;
+  const amt=await cashoutDialog(b);
+  if(amt===null)return;
+  b.status='cashout';b.ret=amt;
+  await save();renderAll();
+  toast(`Cashout · ${(betProfit(b)>=0?'+':'')+eur(betProfit(b))}`);
+}
+async function quickSettle(id,res){
+  const b=S.bets.find(x=>x.id===id);if(!b)return;
+  b.status=res;
+  await save();renderAll();
+  const lbl={won:'Vinta',lost:'Persa',void:'Void'}[res];
+  const p=betProfit(b);
+  toast(`${lbl} · ${(p>=0?'+':'')+eur(p)}`);
+}
+
+/* ============================================================
+   2) STAKE SUGGERITO
+============================================================ */
+// Regole tue: Singola 20 · Doppia 10-15 · multipla o quota alta 2-5
+function suggestStake(type,odds){
+  const o=num(odds);
+  if(o>=5)return {min:2,max:5,why:'quota alta'};
+  if(type==='Singola'){
+    if(o>=3)return {min:2,max:5,why:'singola a quota alta'};
+    return {min:20,max:20,why:'singola'};
+  }
+  if(type==='Doppia')return {min:10,max:15,why:'doppia'};
+  if(type==='Tris'||type==='Sistema')return {min:2,max:5,why:'multipla'};
+  if(type==='Player Builder'||type==='Marcatore')return {min:2,max:5,why:'giocata a quota alta'};
+  if(type==='Live'||type==='Antepost'){
+    if(o>=3)return {min:2,max:5,why:'quota alta'};
+    return {min:10,max:15,why:type.toLowerCase()};
+  }
+  return null;
+}
+function renderStakeHint(){
+  const el=document.getElementById('b-stake-hint');if(!el)return;
+  const type=document.getElementById('b-type').value;
+  const odds=document.getElementById('b-odds').value;
+  const stake=num(document.getElementById('b-stake').value);
+  const s=suggestStake(type,odds);
+  if(!s){el.textContent='';el.className='hint';return;}
+  const range=s.min===s.max?eur(s.min):`${eur(s.min)}–${eur(s.max)}`;
+  if(stake>0){
+    if(stake>s.max*1.05){
+      const x=(stake/s.max).toLocaleString('it-IT',{maximumFractionDigits:1});
+      el.innerHTML=`⚠︎ sopra il tuo piano: per ${s.why} avevi detto ${range} — questa è ${x}× il massimo`;
+      el.className='hint';el.style.color='var(--loss)';
+    }else if(stake<s.min*0.95){
+      el.innerHTML=`sotto il tuo piano (${range} per ${s.why}) — va bene, è prudente`;
+      el.className='hint';el.style.color='var(--muted-2)';
+    }else{
+      el.innerHTML=`✓ in linea col tuo piano (${range} per ${s.why})`;
+      el.className='hint';el.style.color='var(--accent)';
+    }
+  }else{
+    el.innerHTML=`piano: <b style="color:var(--text)">${range}</b> per ${s.why}`;
+    el.className='hint';el.style.color='';
+  }
+}
+
+/* ============================================================
+   3) ANALISI PER COMPETIZIONE
+============================================================ */
+function statsByComp(){
+  const map={};
+  S.bets.filter(isSettled).forEach(b=>{
+    const c=(b.comp||'').trim()||'— non indicata';
+    if(!map[c])map[c]={comp:c,n:0,staked:0,pl:0,won:0,dec:0,odds:0,nOdds:0};
+    const r=map[c];r.n++;
+    if(!b.bonus)r.staked+=num(b.stake);
+    r.pl+=betProfit(b);
+    if(b.status==='won'||b.status==='lost'){r.dec++;if(b.status==='won')r.won++;}
+    if(num(b.odds)>0){r.odds+=num(b.odds);r.nOdds++;}
+  });
+  return Object.values(map).map(r=>({...r,
+    winRate:r.dec?r.won/r.dec*100:0,
+    yield:r.staked>0?r.pl/r.staked*100:null,
+    avgOdds:r.nOdds?r.odds/r.nOdds:null
+  })).sort((a,b)=>b.pl-a.pl);
+}
+function renderComp(){
+  const tb=document.getElementById('stats-comp'),tbe=document.getElementById('stats-comp-empty');
+  if(!tb)return;
+  const rows=statsByComp();
+  const real=rows.filter(r=>r.comp!=='— non indicata');
+  if(!rows.length||!real.length){
+    tb.closest('.card').style.display='none';
+    tbe.innerHTML='<div class="empty"><div class="e-sub">Compila il campo <b>Competizione</b> quando inserisci una giocata (es. Serie A, Premier League, NBA) e qui vedrai dove guadagni davvero e dove perdi.</div></div>';
+    return;
+  }
+  tb.closest('.card').style.display='';tbe.innerHTML='';
+  tb.innerHTML=rows.map(r=>`<tr>
+    <td class="l" style="font-family:var(--disp);font-weight:500${r.comp==='— non indicata'?';color:var(--muted-2)':''}">${esc(r.comp)}</td>
+    <td>${r.n}</td>
+    <td>${eur(r.staked)}</td>
+    <td style="color:var(--muted)">${r.dec?pct(r.winRate):'—'}</td>
+    <td style="color:var(--muted)" class="num">${r.avgOdds?r.avgOdds.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}):'—'}</td>
+    <td class="${r.yield!==null?signCls(r.yield):''}">${r.yield!==null?pct(r.yield):'—'}</td>
+    <td class="${signCls(r.pl)}">${(r.pl>=0?'+':'')+eur(r.pl)}</td></tr>`).join('');
+}
+
+/* ============================================================
+   4) REPORT MENSILE
+============================================================ */
+function monthReport(key){
+  const bets=S.bets.filter(b=>isSettled(b)&&(b.date||'').slice(0,7)===key);
+  const staked=bets.filter(b=>!b.bonus).reduce((a,b)=>a+num(b.stake),0);
+  const pl=bets.reduce((a,b)=>a+betProfit(b),0);
+  const dec=bets.filter(b=>b.status==='won'||b.status==='lost');
+  const won=dec.filter(b=>b.status==='won').length;
+  const yld=staked>0?pl/staked*100:null;
+  const odds=bets.filter(b=>num(b.odds)>0);
+  const avgOdds=odds.length?odds.reduce((a,b)=>a+num(b.odds),0)/odds.length:null;
+  const avgStake=bets.filter(b=>!b.bonus).length?staked/bets.filter(b=>!b.bonus).length:0;
+  const best=bets.reduce((m,b)=>betProfit(b)>(m?betProfit(m):-1e9)?b:m,null);
+  const worst=bets.reduce((m,b)=>betProfit(b)<(m?betProfit(m):1e9)?b:m,null);
+  // per tipo
+  const byType={};bets.forEach(b=>{const t=b.type||'—';byType[t]=byType[t]||{t,n:0,pl:0,staked:0};byType[t].n++;byType[t].pl+=betProfit(b);if(!b.bonus)byType[t].staked+=num(b.stake);});
+  // per competizione
+  const byComp={};bets.forEach(b=>{const c=(b.comp||'').trim();if(!c)return;byComp[c]=byComp[c]||{c,n:0,pl:0};byComp[c].n++;byComp[c].pl+=betProfit(b);});
+  const movs=S.moves.filter(m=>(m.date||'').slice(0,7)===key);
+  const dep=movs.filter(m=>m.type==='deposit').reduce((a,m)=>a+num(m.amount),0);
+  const wdr=movs.filter(m=>m.type==='withdrawal').reduce((a,m)=>a+num(m.amount),0);
+  return {key,bets,n:bets.length,staked,pl,nDec:dec.length,won,lost:dec.length-won,
+    winRate:dec.length?won/dec.length*100:null,yield:yld,avgOdds,avgStake,best,worst,
+    byType:Object.values(byType).sort((a,b)=>b.pl-a.pl),
+    byComp:Object.values(byComp).sort((a,b)=>b.pl-a.pl),dep,wdr};
+}
+function monthVerdict(R,prev){
+  // giudizio onesto e prudente: poche giocate => nessuna conclusione
+  if(R.n===0)return {tone:'',txt:'Nessuna giocata chiusa in questo mese.'};
+  if(R.n<10)return {tone:'',txt:`Solo ${R.n} giocat${R.n===1?'a':'e'} chiuse: troppo poche per dire se hai giocato bene o male. Il risultato di ${(R.pl>=0?'+':'')+eur(R.pl)} a questo punto è più fortuna che bravura, in un senso o nell'altro. Servono almeno 30–50 schedine perché i numeri comincino a significare qualcosa.`};
+  const y=R.yield;
+  let txt='',tone='';
+  if(y===null)txt='Mese fatto solo di giocate bonus: nessun capitale tuo a rischio.';
+  else if(y>=8){tone='pos';txt=`Yield del ${pct(y)} su ${R.n} giocate: mese molto buono. Attenzione però a non scambiarlo per la norma — su questi numeri una parte è merito, una parte è varianza. Se il tuo yield resta sopra il 5% anche nei prossimi mesi, allora è bravura vera.`;}
+  else if(y>=3){tone='pos';txt=`Yield del ${pct(y)}: sei in una fascia sana. Se lo mantieni su qualche centinaio di giocate sei un giocatore in profitto, il che è tutt'altro che scontato.`;}
+  else if(y>=0){txt=`Yield del ${pct(y)}: sostanzialmente in pari. Non è un brutto mese, ma nemmeno un segnale di vantaggio sul banco. Da tenere d'occhio.`;}
+  else if(y>=-5){tone='neg';txt=`Yield del ${pct(y)}: mese in perdita, ma dentro la normale oscillazione. Non cambiare strategia per un mese storto — guarda semmai se c'è un tipo di giocata o un campionato che pesa più degli altri.`;}
+  else {tone='neg';txt=`Yield del ${pct(y)}: mese pesante. Vale la pena guardare la ripartizione qui sotto: se la perdita è concentrata su un tipo di giocata o su una competizione, hai un'indicazione concreta su cosa correggere. Se invece è distribuita, è più probabile che sia varianza.`;}
+  // segnale di rincorsa
+  let warn='';
+  if(prev&&prev.pl<0&&R.avgStake>prev.avgStake*1.3&&R.n>=5){
+    warn=`Un dato da guardare in faccia: dopo un mese in perdita la tua puntata media è salita da ${eur(prev.avgStake)} a ${eur(R.avgStake)}, cioè +${Math.round((R.avgStake/prev.avgStake-1)*100)}%. Alzare gli stake dopo aver perso è il modo classico in cui un mese storto diventa un anno storto.`;
+  }
+  return {tone,txt,warn};
+}
+function renderMonthReport(){
+  const sel=document.getElementById('mr-month');if(!sel)return;
+  const months=[...new Set(S.bets.filter(isSettled).map(b=>(b.date||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  const host=document.getElementById('mr-body');
+  if(!months.length){
+    sel.innerHTML='<option>—</option>';
+    host.innerHTML='<div class="empty"><div class="e-sub">Chiudi qualche giocata e qui troverai il resoconto del mese: come è andato, cosa ha funzionato e cosa no.</div></div>';
+    return;
+  }
+  const cur=sel.value&&months.includes(sel.value)?sel.value:months[0];
+  sel.innerHTML=months.map(m=>`<option value="${m}"${m===cur?' selected':''}>${monthLabel(m)}</option>`).join('');
+  const R=monthReport(cur);
+  const pi=months.indexOf(cur);
+  const P=pi<months.length-1?monthReport(months[pi+1]):null;
+  const V=monthVerdict(R,P);
+  const dPl=P?R.pl-P.pl:null;
+  const line=(l,v,cls)=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--line-soft);font-size:13px">
+    <span style="color:var(--muted)">${l}</span><span class="num ${cls||''}">${v}</span></div>`;
+  host.innerHTML=`
+    <div class="card card-pad" style="margin-bottom:12px;border-color:${V.tone==='pos'?'var(--gain)':(V.tone==='neg'?'rgba(255,90,90,.4)':'var(--line)')}">
+      <div class="kb-lab" style="color:var(--accent);margin-bottom:8px">Come è andato ${monthLabel(cur)}</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        <span class="num ${signCls(R.pl)}" style="font-size:28px;font-weight:600">${(R.pl>=0?'+':'')+eur(R.pl)}</span>
+        <span style="color:var(--muted);font-size:12.5px">${R.n} giocate · ${eur(R.staked)} giocati${R.yield!==null?` · yield ${pct(R.yield)}`:''}</span>
+      </div>
+      <div style="font-size:13.5px;line-height:1.6">${V.txt}</div>
+      ${V.warn?`<div style="margin-top:11px;padding:10px 12px;border-radius:8px;background:rgba(255,90,90,.08);border-left:2px solid var(--loss);font-size:12.5px;line-height:1.55;color:var(--text)">${V.warn}</div>`:''}
+    </div>
+    <div class="card card-pad" style="margin-bottom:12px">
+      <div class="kb-lab" style="color:var(--accent);margin-bottom:2px">I numeri del mese</div>
+      ${line('Giocate chiuse',R.n)}
+      ${line('Vinte / perse',`${R.won} / ${R.lost}`)}
+      ${line('% vincenti',R.winRate!==null?pct(R.winRate):'—')}
+      ${line('Quota media',R.avgOdds?R.avgOdds.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}):'—')}
+      ${line('Puntata media',eur(R.avgStake))}
+      ${line('Totale giocato',eur(R.staked))}
+      ${line('Yield',R.yield!==null?pct(R.yield):'—',signCls(R.yield||0))}
+      ${line('P/L del mese',(R.pl>=0?'+':'')+eur(R.pl),signCls(R.pl))}
+      ${dPl!==null?line(`Rispetto a ${monthLabel(months[pi+1])}`,(dPl>=0?'+':'')+eur(dPl),signCls(dPl)):''}
+      ${(R.dep||R.wdr)?line('Versamenti / prelievi',`${eur(R.dep)} / ${eur(R.wdr)}`):''}
+      ${R.best&&betProfit(R.best)>0?line('Colpo migliore',`+${eur(betProfit(R.best))}`,'gain'):''}
+      ${R.worst&&betProfit(R.worst)<0?line('Peggior giocata',eur(betProfit(R.worst)),'loss'):''}
+    </div>
+    ${R.byType.length?`<div class="card card-pad" style="margin-bottom:12px">
+      <div class="kb-lab" style="color:var(--accent);margin-bottom:2px">Per tipo di giocata</div>
+      ${R.byType.map(t=>line(`${esc(t.t)} · ${t.n}`,(t.pl>=0?'+':'')+eur(t.pl),signCls(t.pl))).join('')}
+    </div>`:''}
+    ${R.byComp.length?`<div class="card card-pad">
+      <div class="kb-lab" style="color:var(--accent);margin-bottom:2px">Per competizione</div>
+      ${R.byComp.map(c=>line(`${esc(c.c)} · ${c.n}`,(c.pl>=0?'+':'')+eur(c.pl),signCls(c.pl))).join('')}
+    </div>`:''}`;
+}
+
+function fillCompList(){
+  const el=document.getElementById('comp-list');if(!el)return;
+  const comps=[...new Set(S.bets.map(b=>(b.comp||'').trim()).filter(Boolean))].sort();
+  el.innerHTML=comps.map(c=>`<option value="${esc(c)}">`).join('');
+}
+function renderAll(){
+  const M=computeMetrics();
+  renderHeader(M);renderKPIs(M);renderRecovery(M);drawChart(M);renderBreakdown(M);
+  renderBets();renderMoves();renderBooks();renderStats();renderBudget(M);renderExchange();renderNotes();renderNoteBadge();renderQuickSettle();renderComp();renderMonthReport();renderCapCheck();renderSync();fillCompList();fillBookSelects();
+}
+
+/* ============================================================
+   ACTIONS
+============================================================ */
+let editingBet=null;
+function toast(msg,err){const t=document.getElementById('toast');t.textContent=msg;t.className='show'+(err?' err':'');setTimeout(()=>t.className='',2600);}
+
+function confirmDialog(msg,confirmLabel,cancelLabel){
+  return new Promise(resolve=>{
+    const ov=document.getElementById('confirm-overlay');
+    document.getElementById('confirm-msg').innerHTML=msg;
+    document.getElementById('confirm-yes').textContent=confirmLabel||'Elimina';
+    document.getElementById('confirm-no').textContent=cancelLabel||'Annulla';
+    ov.classList.add('show');
+    const yes=document.getElementById('confirm-yes'),no=document.getElementById('confirm-no');
+    const done=(v)=>{ov.classList.remove('show');yes.onclick=null;no.onclick=null;ov.onclick=null;document.getElementById('confirm-no').textContent='Annulla';resolve(v);};
+    yes.onclick=()=>done(true);
+    no.onclick=()=>done(false);
+    ov.onclick=e=>{if(e.target===ov)done(false);};
+  });
+}
+
+let payoutEdited=false;
+function currentPayout(){
+  const st=num(document.getElementById('b-stake').value),od=num(document.getElementById('b-odds').value);
+  const pf=document.getElementById('b-payout').value;
+  if(payoutEdited&&pf!=='')return num(pf);
+  return st>0&&od>0?st*od:0;
+}
+function updatePreview(){
+  const st=num(document.getElementById('b-stake').value),od=num(document.getElementById('b-odds').value);
+  const bonus=document.getElementById('b-bonus').checked;
+  const pf=document.getElementById('b-payout');
+  const hint=document.getElementById('b-payout-hint');
+  // auto-riempimento finché l'utente non lo tocca a mano
+  if(!payoutEdited){
+    pf.value=(st>0&&od>0)?String((st*od).toFixed(2)).replace('.',','):'';
+  }
+  const payout=currentPayout();
+  const profit=payout-st;
+  const auto=st>0&&od>0?st*od:0;
+  if(payoutEdited&&pf.value!==''&&Math.abs(payout-auto)>0.005){
+    hint.innerHTML=`personalizzata (auto sarebbe ${eur(auto)}) · <span style="color:var(--accent);cursor:pointer" id="payout-reset">ripristina</span>`;
+    setTimeout(()=>{const r=document.getElementById('payout-reset');if(r)r.onclick=()=>{payoutEdited=false;updatePreview();};},0);
+  }else{
+    hint.textContent='calcolata da puntata × quota — modificala se c\'è un bonus';
+  }
+  const el=document.getElementById('b-preview');
+  if(st>0&&(od>0||payoutEdited)){
+    el.textContent=bonus
+      ? `Bonus · profitto se vince ${eur(bonus&&!payoutEdited?st*(od-1):profit)} · se perde 0 (capitale intatto)`
+      : `Vincita potenziale ${eur(payout)} · profitto ${eur(profit)}`;
+  } else el.textContent='';
+}
+
+async function saveBet(){
+  const book=document.getElementById('b-book').value;
+  const stake=num(document.getElementById('b-stake').value);
+  const odds=num(document.getElementById('b-odds').value);
+  if(!book){toast('Scegli un bookmaker (aggiungine uno nella scheda Bookmaker)',true);return;}
+  if(stake<=0){toast('Inserisci una puntata valida',true);return;}
+  const status=document.getElementById('b-status').value;
+  if(status!=='void'&&status!=='cashout'&&odds<=0){toast('Inserisci una quota valida',true);return;}
+  const rec={
+    id:editingBet||uid(),
+    date:document.getElementById('b-date').value||todayISO(),
+    book,type:document.getElementById('b-type').value,
+    desc:document.getElementById('b-desc').value.trim(),
+    comp:document.getElementById('b-comp').value.trim(),
+    sport:document.getElementById('b-sport').value,
+    stake,odds,status,
+    payout:(payoutEdited&&document.getElementById('b-payout').value!=='')?num(document.getElementById('b-payout').value):null,
+    bonus:document.getElementById('b-bonus').checked,
+    ret:status==='cashout'?num(document.getElementById('b-return').value):null
+  };
+  if(editingBet){const i=S.bets.findIndex(b=>b.id===editingBet);S.bets[i]=rec;editingBet=null;
+    document.getElementById('b-cancel').style.display='none';
+    document.getElementById('bet-form-title').textContent='Nuova giocata';
+    document.getElementById('b-save').textContent='Aggiungi giocata';toast('Giocata aggiornata');}
+  else{S.bets.push(rec);toast('Giocata aggiunta');}
+  payoutEdited=false;
+  ['b-desc','b-comp','b-stake','b-odds','b-return','b-payout'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('b-payout-hint').textContent='calcolata da puntata × quota — modificala se c\'è un bonus';
+  renderStakeHint();
+  document.getElementById('b-bonus').checked=false;document.getElementById('b-bonus-row').classList.remove('on');
+  document.getElementById('b-preview').textContent='';
+  await save();renderAll();
+}
+function editBet(id){
+  const b=S.bets.find(x=>x.id===id);if(!b)return;editingBet=id;
+  document.getElementById('b-date').value=b.date;document.getElementById('b-book').value=b.book;
+  document.getElementById('b-type').value=b.type;document.getElementById('b-desc').value=b.desc||'';
+  document.getElementById('b-comp').value=b.comp||'';
+  document.getElementById('b-sport').value=b.sport||'Calcio';
+  document.getElementById('b-stake').value=String(b.stake).replace('.',',');
+  document.getElementById('b-odds').value=String(b.odds).replace('.',',');
+  if(b.payout!==undefined&&b.payout!==null&&b.payout!==''){
+    payoutEdited=true;
+    document.getElementById('b-payout').value=String(b.payout).replace('.',',');
+  }else{
+    payoutEdited=false;
+    document.getElementById('b-payout').value='';
+  }
+  document.getElementById('b-status').value=b.status;toggleCashout();
+  if(b.status==='cashout')document.getElementById('b-return').value=String(b.ret||'').replace('.',',');
+  document.getElementById('b-bonus').checked=!!b.bonus;
+  document.getElementById('b-bonus-row').classList.toggle('on',!!b.bonus);
+  document.getElementById('bet-form-title').textContent='Modifica giocata';
+  document.getElementById('b-save').textContent='Salva modifica';
+  document.getElementById('b-cancel').style.display='';
+  updatePreview();renderStakeHint();
+  document.querySelector('[data-tab=bets]').click();window.scrollTo({top:0,behavior:'smooth'});
+}
+function toggleCashout(){document.getElementById('cashout-field').style.display=document.getElementById('b-status').value==='cashout'?'':'none';}
+
+async function saveMove(){
+  const book=document.getElementById('m-book').value,amount=num(document.getElementById('m-amount').value);
+  if(!book){toast('Scegli un bookmaker',true);return;}
+  if(amount<=0){toast('Inserisci un importo valido',true);return;}
+  S.moves.push({id:uid(),date:document.getElementById('m-date').value||todayISO(),book,
+    type:document.getElementById('m-type').value,amount,note:document.getElementById('m-note').value.trim()});
+  document.getElementById('m-amount').value='';document.getElementById('m-note').value='';
+  await save();renderAll();toast('Movimento registrato');
+}
+let editingBook=null;
+async function saveBook(){
+  const name=document.getElementById('k-name').value.trim();
+  if(!name){toast('Inserisci un nome',true);return;}
+  const init=num(document.getElementById('k-init').value);
+  if(editingBook){
+    const b=S.books.find(x=>x.id===editingBook);
+    if(b){
+      const oldInit=num(b.init);
+      const diff=init-oldInit;
+      // Se stai cambiando il saldo iniziale, quasi sempre in realtà vuoi
+      // registrare un versamento/prelievo: chiediglielo esplicitamente.
+      if(Math.abs(diff)>0.001){
+        const isDep=diff>0;
+        const verb=isDep?'versamento':'prelievo';
+        const ok=await confirmDialog(
+          `Stai cambiando il saldo iniziale di ${esc(name)} da ${eur(oldInit)} a ${eur(init)} (${diff>0?'+':''}${eur(diff)}).<br><br>`+
+          `<b>Se hai appena aggiunto o tolto soldi</b>, questa differenza va registrata come <b>${verb}</b> nei Movimenti (così entra nel budget e nell'obiettivo di recupero). `+
+          `<b>Se stai solo correggendo un errore</b> di apertura, no.<br><br>Vuoi registrare ${eur(Math.abs(diff))} come ${verb}?`,
+          `Sì, registra ${verb}`, 'No, correggi apertura');
+        if(ok){
+          // lascio il saldo iniziale com'era e creo il movimento
+          S.moves.push({id:uid(),date:todayISO(),book:editingBook,type:isDep?'deposit':'withdrawal',amount:Math.abs(diff),note:'da modifica saldo'});
+          b.name=name; // NON tocco b.init
+          editingBook=null;cancelBookEdit();
+          await save();renderAll();
+          toast(`Registrato ${verb} di ${eur(Math.abs(diff))}`);
+          return;
+        }
+      }
+      b.name=name;b.init=init;
+    }
+    editingBook=null;cancelBookEdit();toast('Bookmaker aggiornato');
+  }else{
+    // Un solo canale: il capitale entra sempre come Versamento, mai come "init".
+    const id=uid();
+    S.books.push({id,name,init:0});
+    if(init>0.001){
+      S.moves.push({id:uid(),date:todayISO(),book:id,type:'deposit',amount:init,note:'apertura conto'});
+      toast(`${name} aggiunto · versamento di ${eur(init)} registrato`);
+    }else toast('Bookmaker aggiunto');
+  }
+  document.getElementById('k-name').value='';document.getElementById('k-init').value='';
+  await save();renderAll();
+}
+async function moveBook(id,dir){
+  const i=S.books.findIndex(b=>b.id===id);
+  if(i<0)return;
+  const j=i+dir;
+  if(j<0||j>=S.books.length)return;
+  [S.books[i],S.books[j]]=[S.books[j],S.books[i]];
+  await save();renderBooks();
+}
+function editBook(id){
+  const b=S.books.find(x=>x.id===id);if(!b)return;editingBook=id;
+  document.getElementById('k-name').value=b.name;
+  document.getElementById('k-init').value=b.init?String(b.init).replace('.',','):'';
+  document.getElementById('book-form-title').textContent='Modifica bookmaker';
+  document.getElementById('k-save').textContent='Salva modifica';
+  document.getElementById('k-cancel').style.display='';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function cancelBookEdit(){
+  editingBook=null;
+  document.getElementById('k-name').value='';document.getElementById('k-init').value='';
+  document.getElementById('book-form-title').textContent='Aggiungi bookmaker';
+  document.getElementById('k-save').textContent='Aggiungi';
+  document.getElementById('k-cancel').style.display='none';
+}
+
+/* delete confirmations kept lightweight */
+async function del(arr,id,msg){const i=S[arr].findIndex(x=>x.id===id);if(i<0)return;S[arr].splice(i,1);await save();renderAll();toast(msg);}
+
+/* ============================================================
+   WIRING
+============================================================ */
+function initEvents(){
+  document.getElementById('tabs').addEventListener('click',e=>{
+    const t=e.target.closest('.tab');if(!t)return;
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');document.getElementById('p-'+t.dataset.tab).classList.add('active');
+    if(t.dataset.tab==='overview')drawChart(computeMetrics());
+    if(t.dataset.tab==='exchange')drawExChart();
+  });
+
+  document.getElementById('b-save').onclick=saveBet;
+  document.getElementById('b-cancel').onclick=()=>{editingBet=null;payoutEdited=false;document.getElementById('b-cancel').style.display='none';
+    document.getElementById('bet-form-title').textContent='Nuova giocata';document.getElementById('b-save').textContent='Aggiungi giocata';
+    ['b-desc','b-stake','b-odds','b-return','b-payout'].forEach(id=>document.getElementById(id).value='');document.getElementById('b-bonus').checked=false;document.getElementById('b-bonus-row').classList.remove('on');document.getElementById('b-preview').textContent='';};
+  document.getElementById('b-status').onchange=toggleCashout;
+  document.getElementById('b-bonus').addEventListener('change',e=>{document.getElementById('b-bonus-row').classList.toggle('on',e.target.checked);updatePreview();});
+  document.getElementById('b-stake').oninput=updatePreview;document.getElementById('b-odds').oninput=updatePreview;
+  document.getElementById('b-payout').addEventListener('input',()=>{payoutEdited=true;updatePreview();});
+  // spiegazione metriche: click su una KPI
+  ['kpis','ex-kpis'].forEach(id=>{
+    const host=document.getElementById(id);if(!host)return;
+    host.addEventListener('click',e=>{
+      const card=e.target.closest('[data-kpi]');if(!card)return;
+      const k=card.dataset.kpi;
+      openKpiInfo(k,k.startsWith('ex_')?exMetrics():computeMetrics());
+    });
+  });
+  document.getElementById('kb-close').onclick=closeKpiInfo;
+  document.getElementById('kpi-overlay').addEventListener('click',e=>{if(e.target.id==='kpi-overlay')closeKpiInfo();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeKpiInfo();}});
+
+  // chiusura rapida dalla Panoramica
+  document.getElementById('quick-settle').addEventListener('click',e=>{
+    const b=e.target.closest('[data-settle]');
+    const c=e.target.closest('[data-cashout]');
+    if(c){quickCashout(c.dataset.cashout);return;}
+    if(!b)return;
+    quickSettle(b.dataset.settle,b.dataset.res);
+  });
+  // stake suggerito
+  ['b-type','b-odds','b-stake'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.addEventListener('input',renderStakeHint);
+  });
+  document.getElementById('b-type').addEventListener('change',renderStakeHint);
+  // report mensile
+  document.getElementById('mr-month').addEventListener('change',renderMonthReport);
+
+  // note
+  document.getElementById('n-save').onclick=saveNote;
+  document.getElementById('n-cancel').onclick=cancelNoteEdit;
+  document.getElementById('n-filters').addEventListener('click',e=>{
+    const b=e.target.closest('[data-nf]');if(!b)return;
+    noteFilter=b.dataset.nf;
+    document.querySelectorAll('#n-filters .fbtn').forEach(x=>x.classList.toggle('active',x===b));
+    renderNotes();
+  });
+  document.getElementById('note-list').addEventListener('click',async e=>{
+    const t=e.target.closest('[data-toggle]');if(t){toggleNote(t.dataset.toggle);return;}
+    const ed=e.target.dataset.editnote;if(ed){editNote(ed);return;}
+    const d=e.target.dataset.delnote;
+    if(d&&await confirmDialog('Eliminare questa nota?')){
+      const i=S.notes.findIndex(n=>n.id===d);
+      if(i>=0){S.notes.splice(i,1);await save();renderNotes();renderNoteBadge();toast('Nota eliminata');}
+    }
+  });
+
+  document.getElementById('m-save').onclick=saveMove;
+  document.getElementById('ex-save').onclick=saveExSettings;
+  document.getElementById('ex-snap-save').onclick=saveExSnap;
+  document.getElementById('ex-capital').oninput=exUnitsHint;
+  document.getElementById('ex-units').oninput=exUnitsHint;
+  document.getElementById('ex-body').addEventListener('click',async e=>{
+    const d=e.target.dataset.delsnap;
+    if(d&&await confirmDialog('Eliminare questo saldo mensile?')){
+      const i=S.exchange.snaps.findIndex(s=>s.id===d);
+      if(i>=0){S.exchange.snaps.splice(i,1);await save();renderExchange();toast('Saldo eliminato');}
+    }
+  });
+  document.getElementById('k-save').onclick=saveBook;
+  document.getElementById('k-cancel').onclick=cancelBookEdit;
+  document.getElementById('f-book').onchange=renderBets;document.getElementById('f-status').onchange=renderBets;
+  ['fm-book','fm-type','fm-year'].forEach(id=>document.getElementById(id).onchange=renderMoves);
+
+  document.getElementById('bets-body').addEventListener('click',async e=>{
+    const co=e.target.dataset.cashout;if(co){quickCashout(co);return;}
+    const ed=e.target.dataset.edit,dl=e.target.dataset.del;
+    if(ed)editBet(ed);
+    if(dl){if(await confirmDialog('Eliminare questa giocata?'))del('bets',dl,'Giocata eliminata');}
+  });
+  document.getElementById('moves-body').addEventListener('click',async e=>{const d=e.target.dataset.delmove;if(d&&await confirmDialog('Eliminare questo movimento?'))del('moves',d,'Movimento eliminato');});
+  document.getElementById('bk-cards').addEventListener('click',async e=>{
+    const up=e.target.dataset.moveup;if(up){moveBook(up,-1);return;}
+    const dn=e.target.dataset.movedown;if(dn){moveBook(dn,1);return;}
+    const ed=e.target.dataset.editbook;if(ed){editBook(ed);return;}
+    const d=e.target.dataset.delbook;if(d){
+    const linked=S.bets.some(b=>b.book===d)||S.moves.some(m=>m.book===d);
+    const ok=await confirmDialog(linked?'Questo bookmaker ha giocate o movimenti collegati. Eliminandolo perderai quei riferimenti. Procedere?':'Eliminare questo bookmaker?');
+    if(!ok)return;
+    del('books',d,'Bookmaker eliminato');return;}
+    const card=e.target.closest('.bk');if(card&&card.dataset.openbook){openBookDetail(card.dataset.openbook);}});
+  document.getElementById('bd-close').onclick=closeBookDetail;
+  document.getElementById('book-detail').addEventListener('click',e=>{if(e.target.id==='book-detail')closeBookDetail();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeBookDetail();});
+
+  document.getElementById('bud-limit').addEventListener('change',async e=>{S.settings.annualLimit=num(e.target.value)||null;await save();renderBudget(computeMetrics());toast('Budget aggiornato');});
+  document.getElementById('cap-pool').addEventListener('change',async e=>{S.settings.capital=num(e.target.value)||null;await save();renderAll();toast(S.settings.capital?'Capitale di gioco impostato':'Capitale di gioco disattivato');});
+
+  // chart hover
+  const cv=document.getElementById('equity');
+  cv.addEventListener('mousemove',chartHover);cv.addEventListener('mouseleave',chartOut);
+  cv.addEventListener('touchmove',chartHover,{passive:true});cv.addEventListener('touchend',chartOut);
+  window.addEventListener('resize',()=>{
+    if(document.getElementById('p-overview').classList.contains('active'))drawChart(computeMetrics());
+    if(document.getElementById('p-exchange').classList.contains('active'))drawExChart();
+  });
+
+  // data export / import / reset
+  document.getElementById('exp').onclick=()=>{
+    const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='betledger_'+todayISO()+'.json';a.click();
+  };
+  document.getElementById('imp').onclick=()=>document.getElementById('impfile').click();
+  document.getElementById('impfile').onchange=e=>{
+    const f=e.target.files[0];if(!f)return;const r=new FileReader();
+    r.onload=async()=>{try{
+      const d=JSON.parse(r.result);if(!d||!Array.isArray(d.books))throw 0;
+      const inc=d.meta&&d.meta.updated?new Date(d.meta.updated):null;
+      const cur=S.meta&&S.meta.updated?new Date(S.meta.updated):null;
+      const older=inc&&cur&&inc<cur;
+      const ok=await confirmDialog(
+        `Sostituisco i dati attuali con quelli del file.<br><br><b>Dal file:</b> ${dataSummary(d)}${inc?` · ${whenTxt(d.meta.updated)}`:''}<br><b>Verranno sostituiti:</b> ${dataSummary(S)}${cur?` · ${whenTxt(S.meta.updated)}`:''}<br><br>`+
+        (older?'<b style="color:#FF5A5A">Il file è più vecchio dei dati già presenti.</b><br><br>':'')+
+        'Salvo una copia di quelli attuali: potrai annullare subito dopo.','Importa','Annulla');
+      if(!ok){e.target.value='';return;}
+      await stashBackup();loadState(d);
+      await save();refreshInputs();renderAll();toast('Dati importati');
+    }catch(err){toast('File non valido',true);}finally{e.target.value='';}};r.readAsText(f);
+  };
+  document.getElementById('reset').onclick=async()=>{
+    const ex=S.exchange&&(num(S.exchange.capital)>0||(S.exchange.snaps||[]).length);
+    if(!await confirmDialog(
+      'Verranno azzerati <b>bookmaker, giocate, movimenti, note</b> e le impostazioni di capitale e budget.<br><br>'+
+      (ex?'Il conto <b>Exchange resta intatto</b> (capitale, unità, stake e saldi mensili).':'Il conto Exchange è vuoto, quindi non c\'è nulla da conservare.')+
+      '<br><br>Operazione irreversibile: se non l\'hai già fatto, esporta prima i dati.',
+      'Azzera','Annulla'))return;
+    const keep=S.exchange||{capital:null,start:null,units:null,startStake:null,snaps:[]};
+    S={settings:{annualLimit:null,capital:null},books:[],moves:[],bets:[],notes:[],exchange:keep};
+    await save();
+    document.getElementById('bud-limit').value='';document.getElementById('cap-pool').value='';
+    fillExInputs();renderAll();toast('Azzerato · Exchange conservato');
+  };
+  document.getElementById('reset-all').onclick=async()=>{
+    if(!await confirmDialog('Azzerare <b>TUTTO</b>, incluso il conto Exchange? Non resterà alcun dato.','Azzera tutto','Annulla'))return;
+    S={settings:{annualLimit:null,capital:null},books:[],moves:[],bets:[],notes:[],
+       exchange:{capital:null,start:null,units:null,startStake:null,snaps:[]}};
+    await save();
+    document.getElementById('bud-limit').value='';document.getElementById('cap-pool').value='';
+    fillExInputs();renderAll();toast('Tutto azzerato');
+  };
+}
+
+/* ============================================================
+   INSTALLAZIONE (PWA)
+   Una PWA non si scarica dallo store: il link è già l'app.
+   Qui rendiamo l'installazione esplicita invece di lasciarla
+   nascosta nel menu del browser.
+============================================================ */
+let deferredPrompt=null;
+
+function isInstalled(){
+  try{
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+  }catch(e){return false;}
+}
+function installDismissed(){
+  try{return localStorage.getItem('betledger_install_dismissed')==='1';}catch(e){return false;}
+}
+function dismissInstall(){
+  try{localStorage.setItem('betledger_install_dismissed','1');}catch(e){}
+  document.getElementById('install-bar').classList.remove('show');
+}
+function showInstallBar(mode){
+  const bar=document.getElementById('install-bar'),txt=document.getElementById('ib-txt'),btn=document.getElementById('ib-btn');
+  if(mode==='prompt'){
+    txt.innerHTML='Installa BetLedger sul telefono<small>Icona in home, schermo intero, funziona offline</small>';
+    btn.style.display='';btn.textContent='Installa';
+  }else{ // iOS: nessun prompt automatico, servono le istruzioni
+    txt.innerHTML='Aggiungi BetLedger alla Home<small>Tocca <b>Condividi</b> ⬆️ in basso, poi <b>Aggiungi a Home</b></small>';
+    btn.style.display='none';
+  }
+  bar.classList.add('show');
+}
+function initInstall(){
+  const inIframe=window.self!==window.top;
+  const isHttp=location.protocol.startsWith('http');
+  // Dentro Claude (iframe) o aperto come file: l'installazione non si applica
+  if(inIframe||!isHttp||isInstalled()||installDismissed())return;
+
+  document.getElementById('ib-close').onclick=dismissInstall;
+
+  // Android / Chrome / Edge: il browser ci passa il prompt nativo
+  window.addEventListener('beforeinstallprompt',e=>{
+    e.preventDefault();deferredPrompt=e;showInstallBar('prompt');
+  });
+  document.getElementById('ib-btn').onclick=async()=>{
+    if(!deferredPrompt)return;
+    deferredPrompt.prompt();
+    try{await deferredPrompt.userChoice;}catch(e){}
+    deferredPrompt=null;
+    document.getElementById('install-bar').classList.remove('show');
+  };
+  window.addEventListener('appinstalled',()=>{
+    document.getElementById('install-bar').classList.remove('show');
+    toast('BetLedger installato — aprilo dalla tua home');
+  });
+
+  // iPhone / iPad: Safari non espone beforeinstallprompt, mostriamo come fare
+  const ua=navigator.userAgent;
+  const isIOS=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(isIOS){setTimeout(()=>{if(!isInstalled()&&!installDismissed())showInstallBar('ios');},1200);}
+}
+
+/* ============================================================
+   BOOT
+============================================================ */
+function fillExInputs(){
+  const E=S.exchange||{};
+  document.getElementById('ex-capital').value=E.capital?String(E.capital).replace('.',','):'';
+  document.getElementById('ex-start').value=E.start||'';
+  document.getElementById('ex-units').value=E.units?String(E.units).replace('.',','):'';
+  document.getElementById('ex-stake').value=E.startStake?String(E.startStake).replace('.',','):'';
+  exUnitsHint();
+}
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
+}
+
+(async function(){
+  document.getElementById('b-date').value=todayISO();
+  document.getElementById('m-date').value=todayISO();
+  document.getElementById('ex-month').value=todayISO().slice(0,7);
+  await load();
+  if(S.settings.annualLimit)document.getElementById('bud-limit').value=String(S.settings.annualLimit).replace('.',',');
+  if(S.settings.capital)document.getElementById('cap-pool').value=String(S.settings.capital).replace('.',',');
+  fillExInputs();
+  initEvents();
+  initInstall();
+  renderAll();
+  toggleCashout();
+  if(storageMode==='volatile'){
+    const b=document.createElement('div');b.className='banner';b.id='storage-banner';
+    b.innerHTML='⚠️ Salvataggio non disponibile in questo browser: i dati restano solo finché non chiudi la pagina. Usa Esporta dati per non perderli.';
+    document.querySelector('.wrap').prepend(b);
+  }else if(storageMode==='local'){
+    const b=document.createElement('div');b.className='banner';b.id='storage-banner';
+    b.innerHTML='💾 I dati si salvano <b>solo su questo dispositivo/browser</b>. Vai su <b>Budget & Dati → Sincronizza tra dispositivi</b> per accedere e sincronizzarli automaticamente, oppure usa Esporta/Importa.';
+    document.querySelector('.wrap').prepend(b);
+  }
+  setTimeout(()=>{const l=document.getElementById('loader');l.style.opacity='0';l.style.transition='opacity .3s';setTimeout(()=>l.remove(),320);
+    if(document.getElementById('p-overview').classList.contains('active'))drawChart(computeMetrics());},250);
+})();
+</script>
+</body>
+</html>
