@@ -797,6 +797,7 @@ function deviceTag(){
   if(/Windows/.test(ua))return 'PC';
   return 'dispositivo';
 }
+let cloudPendingJson=null;
 async function save(){
   S.meta={updated:new Date().toISOString(),device:deviceTag()};
   const json=JSON.stringify(S);
@@ -806,12 +807,21 @@ async function save(){
   }
   if(storageMode==='cloud'&&cloudUser){
     clearTimeout(cloudSaveTimer);
-    cloudSaveTimer=setTimeout(async()=>{
-      try{await cloudAPI.writeDoc(cloudUser.uid,json);}
-      catch(e){toast('Sync cloud non riuscita — riprovo al prossimo salvataggio',true);}
-    },700);
+    cloudPendingJson=json;
+    cloudSaveTimer=setTimeout(flushCloudWrite,700);
   }
 }
+async function flushCloudWrite(){
+  if(!cloudPendingJson||!cloudUser||storageMode!=='cloud')return;
+  clearTimeout(cloudSaveTimer);
+  const json=cloudPendingJson;cloudPendingJson=null;
+  try{await cloudAPI.writeDoc(cloudUser.uid,json);}
+  catch(e){toast('Sync cloud non riuscita — riprovo al prossimo salvataggio',true);}
+}
+// il debounce di 700ms non deve far perdere l'ultimo salvataggio quando il
+// telefono va in background o l'app si chiude subito dopo una modifica
+document.addEventListener('visibilitychange',()=>{if(document.hidden)flushCloudWrite();});
+window.addEventListener('pagehide',()=>{flushCloudWrite();});
 async function cloudSignIn(email,pass){
   try{await cloudAPI.signIn(email,pass);toast('Accesso effettuato');}
   catch(e){toast(cloudErrMsg(e),true);}
