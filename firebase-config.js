@@ -22,10 +22,10 @@
   ma solo in locale (nessuna sincronizzazione tra dispositivi).
 */
 window.BETLEDGER_FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBqIf6ZKFf3PwSisFTyAdnjL18_KuWwLQk",
+  authDomain: "betledger-310ef.firebaseapp.com",
+  projectId: "betledger-310ef",
+  storageBucket: "betledger-310ef.firebasestorage.app",
+  messagingSenderId: "289589430059",
+  appId: "1:289589430059:web:68a5c09b6be4c8d0e5276e"
 };
