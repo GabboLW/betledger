@@ -357,13 +357,10 @@
         <div class="field"><label>Bookmaker</label><select id="b-book"></select></div>
         <div class="field"><label>Tipo giocata</label><input type="text" id="b-type" list="type-list" placeholder="Singola, Doppia, Sistema…"><datalist id="type-list"></datalist></div>
         <div class="field"><label>Tipologia</label><input type="text" id="b-tipologia" list="tipologia-list" placeholder="Segni, Marcatore, Statistica…"><datalist id="tipologia-list"></datalist></div>
-        <div class="field"><label>Sport</label>
-          <select id="b-sport">
-            <option>Calcio</option><option>Basket</option><option>Pallavolo</option><option>Misto</option><option>Altro</option>
-          </select></div>
-        <div class="field wide"><label>Evento / descrizione</label><input type="text" id="b-desc" placeholder="es. Inter–Milan · Over 2.5"></div>
+        <div class="field"><label>Sport</label><input type="text" id="b-sport" list="sport-list" placeholder="Calcio, Basket…"><datalist id="sport-list"></datalist></div>
+        <div class="field wide"><label>Evento / descrizione</label><input type="text" id="b-desc" list="desc-list" placeholder="es. Inter–Milan · Over 2.5"><datalist id="desc-list"></datalist></div>
         <div class="field"><label>Competizione</label><input type="text" id="b-comp" list="comp-list" placeholder="es. Serie A"><span class="hint">facoltativa, serve per l'analisi</span><datalist id="comp-list"></datalist></div>
-        <div class="field"><label>Tipster (facoltativo)</label><select id="b-tipster"><option value="">— nessuno —</option></select></div>
+        <div class="field"><label>Tipster (facoltativo)</label><input type="text" id="b-tipster" list="tipster-list" placeholder="nome tipster…"><datalist id="tipster-list"></datalist></div>
         <div class="field"><label>Puntata (€)</label><input type="text" inputmode="decimal" id="b-stake" placeholder="10,00"><span class="hint" id="b-stake-hint"></span></div>
         <div class="field"><label>Quota</label><input type="text" inputmode="decimal" id="b-odds" placeholder="1,85"></div>
         <div class="field"><label>Vincita potenziale (€)</label><input type="text" inputmode="decimal" id="b-payout" placeholder="auto"><span class="hint" id="b-payout-hint">calcolata da puntata × quota — modificala se c'è un bonus</span></div>
@@ -2109,11 +2106,9 @@ function fillBookSelects(){
   const nel=document.getElementById('n-book');
   if(nel){const v=nel.value;nel.innerHTML='<option value="">—</option>'+S.books.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('');nel.value=v;}
 }
-function fillTipsterSelects(){
-  const el=document.getElementById('b-tipster');if(!el)return;
-  const v=el.value;
-  el.innerHTML='<option value="">— nessuno —</option>'+S.tipsters.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
-  el.value=v;
+function fillTipsterList(){
+  const el=document.getElementById('tipster-list');if(!el)return;
+  el.innerHTML=S.tipsters.map(t=>`<option value="${esc(t.name)}">`).join('');
 }
 function renderTipsters(){
   const host=document.getElementById('ts-cards'),empt=document.getElementById('tipster-empty');if(!host)return;
@@ -2555,6 +2550,7 @@ function fillCompList(){
 }
 const TYPE_DEFAULTS=['Singola','Doppia','Tris','Poker','Multipla','Sistema','My Combo','Metodo 100%'];
 const TIPOLOGIA_DEFAULTS=['Segni','Marcatore','Giocatore','Sanzione','Statistica'];
+const SPORT_DEFAULTS=['Calcio','Basket','Pallavolo','Misto','Altro'];
 function fillSuggestList(listId,field,defaults){
   const el=document.getElementById(listId);if(!el)return;
   const used=[...new Set(S.bets.map(b=>(b[field]||'').trim()).filter(Boolean))];
@@ -2563,10 +2559,12 @@ function fillSuggestList(listId,field,defaults){
 }
 function fillTypeList(){fillSuggestList('type-list','type',TYPE_DEFAULTS);}
 function fillTipologiaList(){fillSuggestList('tipologia-list','tipologia',TIPOLOGIA_DEFAULTS);}
+function fillSportList(){fillSuggestList('sport-list','sport',SPORT_DEFAULTS);}
+function fillDescList(){fillSuggestList('desc-list','desc',[]);}
 function renderAll(){
   const M=computeMetrics();
   renderHeader(M);renderKPIs(M);renderRecovery(M);drawChart(M);renderBreakdown(M);
-  renderBets();renderMoves();renderBooks();renderTipsters();renderStats();renderBudget(M);renderExchange();renderNotes();renderNoteBadge();renderQuickSettle();renderComp();renderMonthReport();renderCapCheck();renderSync();fillCompList();fillTypeList();fillTipologiaList();fillBookSelects();fillTipsterSelects();
+  renderBets();renderMoves();renderBooks();renderTipsters();renderStats();renderBudget(M);renderExchange();renderNotes();renderNoteBadge();renderQuickSettle();renderComp();renderMonthReport();renderCapCheck();renderSync();fillCompList();fillTypeList();fillTipologiaList();fillSportList();fillDescList();fillTipsterList();fillBookSelects();
 }
 
 /* ============================================================
@@ -2631,6 +2629,7 @@ async function saveBet(){
   if(stake<=0){toast('Inserisci una puntata valida',true);return;}
   const status=document.getElementById('b-status').value;
   if(status!=='void'&&status!=='cashout'&&odds<=0){toast('Inserisci una quota valida',true);return;}
+  const tipsterId=resolveTipster(document.getElementById('b-tipster').value.trim());
   const rec={
     id:editingBet||uid(),
     date:document.getElementById('b-date').value||todayISO(),
@@ -2638,25 +2637,46 @@ async function saveBet(){
     tipologia:document.getElementById('b-tipologia').value.trim(),
     desc:document.getElementById('b-desc').value.trim(),
     comp:document.getElementById('b-comp').value.trim(),
-    tipster:document.getElementById('b-tipster').value,
-    sport:document.getElementById('b-sport').value,
+    tipster:tipsterId,
+    sport:document.getElementById('b-sport').value.trim(),
     stake,odds,status,
     payout:(payoutEdited&&document.getElementById('b-payout').value!=='')?num(document.getElementById('b-payout').value):null,
     bonus:document.getElementById('b-bonus').checked,
     ret:status==='cashout'?num(document.getElementById('b-return').value):null
   };
-  if(editingBet){const i=S.bets.findIndex(b=>b.id===editingBet);S.bets[i]=rec;editingBet=null;
-    document.getElementById('b-cancel').style.display='none';
-    document.getElementById('bet-form-title').textContent='Nuova giocata';
-    document.getElementById('b-save').textContent='Aggiungi giocata';toast('Giocata aggiornata');}
+  if(editingBet){const i=S.bets.findIndex(b=>b.id===editingBet);S.bets[i]=rec;editingBet=null;toast('Giocata aggiornata');}
   else{S.bets.push(rec);toast('Giocata aggiunta');}
-  payoutEdited=false;
-  ['b-desc','b-comp','b-stake','b-odds','b-return','b-payout'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('b-payout-hint').textContent='calcolata da puntata × quota — modificala se c\'è un bonus';
-  renderStakeHint();
-  document.getElementById('b-bonus').checked=false;document.getElementById('b-bonus-row').classList.remove('on');
-  document.getElementById('b-preview').textContent='';
+  resetBetForm();
   await save();renderAll();
+}
+function resolveTipster(name){
+  if(!name)return '';
+  let t=S.tipsters.find(x=>x.name.toLowerCase()===name.toLowerCase());
+  if(!t){t={id:uid(),name,note:''};S.tipsters.push(t);}
+  return t.id;
+}
+function resetBetForm(){
+  document.getElementById('b-date').value=todayISO();
+  document.getElementById('b-book').value='';
+  document.getElementById('b-type').value='Singola';
+  document.getElementById('b-tipologia').value='';
+  document.getElementById('b-sport').value='Calcio';
+  document.getElementById('b-desc').value='';
+  document.getElementById('b-comp').value='';
+  document.getElementById('b-tipster').value='';
+  document.getElementById('b-stake').value='';
+  document.getElementById('b-odds').value='';
+  document.getElementById('b-payout').value='';
+  document.getElementById('b-status').value='pending';toggleCashout();
+  document.getElementById('b-return').value='';
+  document.getElementById('b-bonus').checked=false;document.getElementById('b-bonus-row').classList.remove('on');
+  document.getElementById('b-payout-hint').textContent='calcolata da puntata × quota — modificala se c\'è un bonus';
+  document.getElementById('b-preview').textContent='';
+  document.getElementById('b-cancel').style.display='none';
+  document.getElementById('bet-form-title').textContent='Nuova giocata';
+  document.getElementById('b-save').textContent='Aggiungi giocata';
+  editingBet=null;payoutEdited=false;
+  renderStakeHint();
 }
 function editBet(id){
   const b=S.bets.find(x=>x.id===id);if(!b)return;editingBet=id;
@@ -2664,7 +2684,7 @@ function editBet(id){
   document.getElementById('b-type').value=b.type;document.getElementById('b-desc').value=b.desc||'';
   document.getElementById('b-tipologia').value=b.tipologia||'';
   document.getElementById('b-comp').value=b.comp||'';
-  document.getElementById('b-tipster').value=b.tipster||'';
+  document.getElementById('b-tipster').value=(S.tipsters.find(t=>t.id===b.tipster)||{}).name||'';
   document.getElementById('b-sport').value=b.sport||'Calcio';
   document.getElementById('b-stake').value=String(b.stake).replace('.',',');
   document.getElementById('b-odds').value=String(b.odds).replace('.',',');
@@ -2783,9 +2803,7 @@ function initEvents(){
   });
 
   document.getElementById('b-save').onclick=saveBet;
-  document.getElementById('b-cancel').onclick=()=>{editingBet=null;payoutEdited=false;document.getElementById('b-cancel').style.display='none';
-    document.getElementById('bet-form-title').textContent='Nuova giocata';document.getElementById('b-save').textContent='Aggiungi giocata';
-    ['b-desc','b-stake','b-odds','b-return','b-payout'].forEach(id=>document.getElementById(id).value='');document.getElementById('b-bonus').checked=false;document.getElementById('b-bonus-row').classList.remove('on');document.getElementById('b-preview').textContent='';};
+  document.getElementById('b-cancel').onclick=resetBetForm;
   document.getElementById('b-status').onchange=toggleCashout;
   document.getElementById('b-bonus').addEventListener('change',e=>{document.getElementById('b-bonus-row').classList.toggle('on',e.target.checked);updatePreview();});
   document.getElementById('b-stake').oninput=updatePreview;document.getElementById('b-odds').oninput=updatePreview;
@@ -3024,6 +3042,7 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
 (async function(){
   document.getElementById('b-date').value=todayISO();
   document.getElementById('b-type').value='Singola';
+  document.getElementById('b-sport').value='Calcio';
   document.getElementById('m-date').value=todayISO();
   document.getElementById('ex-month').value=todayISO().slice(0,7);
   await load();
