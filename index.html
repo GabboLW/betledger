@@ -319,6 +319,7 @@
     <button class="tab" data-tab="bets">Giocate</button>
     <button class="tab" data-tab="moves">Movimenti</button>
     <button class="tab" data-tab="books">Bookmaker</button>
+    <button class="tab" data-tab="tipster">Tipster</button>
     <button class="tab" data-tab="notes">Note</button>
     <button class="tab" data-tab="stats">Statistiche</button>
     <button class="tab" data-tab="budget">Budget & Dati</button>
@@ -362,6 +363,7 @@
           </select></div>
         <div class="field wide"><label>Evento / descrizione</label><input type="text" id="b-desc" placeholder="es. Inter–Milan · Over 2.5"></div>
         <div class="field"><label>Competizione</label><input type="text" id="b-comp" list="comp-list" placeholder="es. Serie A"><span class="hint">facoltativa, serve per l'analisi</span><datalist id="comp-list"></datalist></div>
+        <div class="field"><label>Tipster (facoltativo)</label><select id="b-tipster"><option value="">— nessuno —</option></select></div>
         <div class="field"><label>Puntata (€)</label><input type="text" inputmode="decimal" id="b-stake" placeholder="10,00"><span class="hint" id="b-stake-hint"></span></div>
         <div class="field"><label>Quota</label><input type="text" inputmode="decimal" id="b-odds" placeholder="1,85"></div>
         <div class="field"><label>Vincita potenziale (€)</label><input type="text" inputmode="decimal" id="b-payout" placeholder="auto"><span class="hint" id="b-payout-hint">calcolata da puntata × quota — modificala se c'è un bonus</span></div>
@@ -458,6 +460,26 @@
     </div>
     <div class="bk-list" id="bk-cards"></div>
     <div id="books-empty"></div>
+  </section>
+
+  <!-- ===== TIPSTER ===== -->
+  <section class="panel" id="p-tipster">
+    <div class="slip">
+      <h3 id="tipster-form-title">Aggiungi tipster</h3>
+      <div class="fields">
+        <div class="field wide"><label>Nome</label><input type="text" id="ts-name" placeholder="es. Canale Telegram X, Mario Rossi…"></div>
+        <div class="field wide"><label>Nota (facoltativa)</label><input type="text" id="ts-note" placeholder="link, canale, contesto…"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="ts-save">Aggiungi</button>
+        <button class="btn ghost" id="ts-cancel" style="display:none">Annulla</button>
+      </div>
+      <p style="padding-left:8px;margin-top:14px;color:var(--muted);font-size:11.5px;line-height:1.55;max-width:560px">
+        Aggiungi qui le fonti dei consigli che segui — canali, persone, gruppi. Poi, quando registri una giocata, puoi collegarla (facoltativo) a uno di questi per vedere come rende nel tempo.
+      </p>
+    </div>
+    <div class="bk-list" id="ts-cards"></div>
+    <div id="tipster-empty"></div>
   </section>
 
   <!-- ===== NOTE ===== -->
@@ -1559,7 +1581,7 @@ function loadState(d){
   S=d;
   S.settings=S.settings||{annualLimit:null,capital:null};
   if(S.settings.capital===undefined)S.settings.capital=null;
-  S.books=S.books||[];S.moves=S.moves||[];S.bets=S.bets||[];S.notes=S.notes||[];
+  S.books=S.books||[];S.moves=S.moves||[];S.bets=S.bets||[];S.notes=S.notes||[];S.tipsters=S.tipsters||[];
   S.exchange=S.exchange||{capital:null,start:null,units:null,startStake:null,snaps:[]};
   S.exchange.snaps=S.exchange.snaps||[];
 }
@@ -2087,6 +2109,66 @@ function fillBookSelects(){
   const nel=document.getElementById('n-book');
   if(nel){const v=nel.value;nel.innerHTML='<option value="">—</option>'+S.books.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('');nel.value=v;}
 }
+function fillTipsterSelects(){
+  const el=document.getElementById('b-tipster');if(!el)return;
+  const v=el.value;
+  el.innerHTML='<option value="">— nessuno —</option>'+S.tipsters.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  el.value=v;
+}
+function renderTipsters(){
+  const host=document.getElementById('ts-cards'),empt=document.getElementById('tipster-empty');if(!host)return;
+  if(!S.tipsters.length){host.innerHTML='';empt.innerHTML=`<div class="empty"><div class="e-big">Nessun tipster</div><div class="e-sub">Aggiungi le fonti dei consigli che segui — canali, persone, gruppi — per tenere traccia di come vanno nel tempo.</div></div>`;return;}
+  empt.innerHTML='';
+  host.innerHTML=S.tipsters.map(t=>{
+    const bets=S.bets.filter(b=>b.tipster===t.id);
+    const pl=bets.filter(isSettled).reduce((a,b)=>a+betProfit(b),0);
+    return `<div class="card card-pad" style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <span style="font-family:var(--disp);font-weight:600;font-size:15px">${esc(t.name)}</span>
+        <span style="white-space:nowrap;display:inline-flex;gap:2px">
+          <button class="rowbtn" data-edittipster="${t.id}">Modifica</button>
+          <button class="rowbtn del" data-deltipster="${t.id}">✕</button>
+        </span>
+      </div>
+      ${t.note?`<div style="color:var(--muted);font-size:12.5px;line-height:1.4">${esc(t.note)}</div>`:''}
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted);border-top:1px solid var(--line-soft);padding-top:9px">
+        <span>${bets.length} giocate</span><span class="${signCls(pl)}">${bets.length?'P/L '+(pl>=0?'+':'')+eur(pl):'—'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+let editingTipster=null;
+async function saveTipster(){
+  const name=document.getElementById('ts-name').value.trim();
+  if(!name){toast('Inserisci un nome',true);return;}
+  const note=document.getElementById('ts-note').value.trim();
+  if(editingTipster){
+    const t=S.tipsters.find(x=>x.id===editingTipster);
+    t.name=name;t.note=note;
+    cancelTipsterEdit();toast('Tipster aggiornato');
+  }else{
+    S.tipsters.push({id:uid(),name,note});
+    document.getElementById('ts-name').value='';document.getElementById('ts-note').value='';
+    toast('Tipster aggiunto');
+  }
+  await save();renderAll();
+}
+function editTipster(id){
+  const t=S.tipsters.find(x=>x.id===id);if(!t)return;editingTipster=id;
+  document.getElementById('ts-name').value=t.name;
+  document.getElementById('ts-note').value=t.note||'';
+  document.getElementById('tipster-form-title').textContent='Modifica tipster';
+  document.getElementById('ts-save').textContent='Salva modifica';
+  document.getElementById('ts-cancel').style.display='';
+  document.querySelector('[data-tab=tipster]').click();
+}
+function cancelTipsterEdit(){
+  editingTipster=null;
+  document.getElementById('ts-name').value='';document.getElementById('ts-note').value='';
+  document.getElementById('tipster-form-title').textContent='Aggiungi tipster';
+  document.getElementById('ts-save').textContent='Aggiungi';
+  document.getElementById('ts-cancel').style.display='none';
+}
 function renderRecovery(M){
   const host=document.getElementById('recovery-card');
   const base=M.poolMode?'il tuo banco':'il capitale che hai immesso';
@@ -2484,7 +2566,7 @@ function fillTipologiaList(){fillSuggestList('tipologia-list','tipologia',TIPOLO
 function renderAll(){
   const M=computeMetrics();
   renderHeader(M);renderKPIs(M);renderRecovery(M);drawChart(M);renderBreakdown(M);
-  renderBets();renderMoves();renderBooks();renderStats();renderBudget(M);renderExchange();renderNotes();renderNoteBadge();renderQuickSettle();renderComp();renderMonthReport();renderCapCheck();renderSync();fillCompList();fillTypeList();fillTipologiaList();fillBookSelects();
+  renderBets();renderMoves();renderBooks();renderTipsters();renderStats();renderBudget(M);renderExchange();renderNotes();renderNoteBadge();renderQuickSettle();renderComp();renderMonthReport();renderCapCheck();renderSync();fillCompList();fillTypeList();fillTipologiaList();fillBookSelects();fillTipsterSelects();
 }
 
 /* ============================================================
@@ -2556,6 +2638,7 @@ async function saveBet(){
     tipologia:document.getElementById('b-tipologia').value.trim(),
     desc:document.getElementById('b-desc').value.trim(),
     comp:document.getElementById('b-comp').value.trim(),
+    tipster:document.getElementById('b-tipster').value,
     sport:document.getElementById('b-sport').value,
     stake,odds,status,
     payout:(payoutEdited&&document.getElementById('b-payout').value!=='')?num(document.getElementById('b-payout').value):null,
@@ -2581,6 +2664,7 @@ function editBet(id){
   document.getElementById('b-type').value=b.type;document.getElementById('b-desc').value=b.desc||'';
   document.getElementById('b-tipologia').value=b.tipologia||'';
   document.getElementById('b-comp').value=b.comp||'';
+  document.getElementById('b-tipster').value=b.tipster||'';
   document.getElementById('b-sport').value=b.sport||'Calcio';
   document.getElementById('b-stake').value=String(b.stake).replace('.',',');
   document.getElementById('b-odds').value=String(b.odds).replace('.',',');
@@ -2788,6 +2872,18 @@ function initEvents(){
     if(!ok)return;
     del('books',d,'Bookmaker eliminato');return;}
     const card=e.target.closest('.bk');if(card&&card.dataset.openbook){openBookDetail(card.dataset.openbook);}});
+  document.getElementById('ts-save').onclick=saveTipster;
+  document.getElementById('ts-cancel').onclick=cancelTipsterEdit;
+  document.getElementById('ts-cards').addEventListener('click',async e=>{
+    const ed=e.target.dataset.edittipster;if(ed){editTipster(ed);return;}
+    const d=e.target.dataset.deltipster;if(d){
+      const linked=S.bets.some(b=>b.tipster===d);
+      const ok=await confirmDialog(linked?'Questo tipster ha giocate collegate. Eliminandolo, quelle giocate restano ma senza tipster associato. Procedere?':'Eliminare questo tipster?');
+      if(!ok)return;
+      S.bets.forEach(b=>{if(b.tipster===d)b.tipster='';});
+      del('tipsters',d,'Tipster eliminato');
+    }
+  });
   document.getElementById('bd-close').onclick=closeBookDetail;
   document.getElementById('book-detail').addEventListener('click',e=>{if(e.target.id==='book-detail')closeBookDetail();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeBookDetail();});
