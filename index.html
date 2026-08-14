@@ -354,12 +354,8 @@
       <div class="fields">
         <div class="field"><label>Data</label><input type="date" id="b-date"></div>
         <div class="field"><label>Bookmaker</label><select id="b-book"></select></div>
-        <div class="field"><label>Tipo giocata</label>
-          <select id="b-type">
-            <option>Singola</option><option>Doppia</option><option>Tris</option><option>Sistema</option>
-            <option>Live</option><option>Antepost</option><option>Marcatore</option><option>Player Builder</option>
-            <option>Quota maggiorata</option><option>MyCombo</option><option>Metodo 100%</option>
-          </select></div>
+        <div class="field"><label>Tipo giocata</label><input type="text" id="b-type" list="type-list" placeholder="Singola, Doppia, Sistema…"><datalist id="type-list"></datalist></div>
+        <div class="field"><label>Tipologia</label><input type="text" id="b-tipologia" list="tipologia-list" placeholder="Segni, Marcatore, Statistica…"><datalist id="tipologia-list"></datalist></div>
         <div class="field"><label>Sport</label>
           <select id="b-sport">
             <option>Calcio</option><option>Basket</option><option>Pallavolo</option><option>Misto</option><option>Altro</option>
@@ -404,7 +400,7 @@
 
     <div class="card"><div class="tbl-scroll"><table id="bets-table">
       <thead><tr>
-        <th class="l">Data</th><th class="l">Evento</th><th class="l">Book</th><th class="l">Tipo</th><th class="l">Sport</th>
+        <th class="l">Data</th><th class="l">Evento</th><th class="l">Book</th><th class="l">Tipo</th><th class="l">Tipologia</th><th class="l">Sport</th>
         <th>Punt.</th><th>Quota</th><th>Esito</th><th>P/L</th><th></th>
       </tr></thead>
       <tbody id="bets-body"></tbody>
@@ -1156,6 +1152,7 @@ function renderBets(){
       <td class="l" style="font-family:var(--disp);max-width:220px;overflow:hidden;text-overflow:ellipsis">${b.bonus?'<span class="chip c-pending" style="font-size:9px;padding:1px 6px;margin-right:5px;vertical-align:middle">BONUS</span>':''}${esc(b.desc)||(b.bonus?'':'<span style="color:var(--muted-2)">—</span>')}</td>
       <td class="l" style="color:var(--muted)">${esc(bookName(b.book))}</td>
       <td class="l" style="color:var(--muted);font-family:var(--disp);font-size:12px">${esc(b.type)}</td>
+      <td class="l" style="color:var(--muted-2);font-size:12px">${esc(b.tipologia||'—')}</td>
       <td class="l" style="color:var(--muted-2);font-size:12px">${esc(b.sport||'—')}</td>
       <td>${eur(num(b.stake))}</td>
       <td>${num(b.odds).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
@@ -2474,10 +2471,20 @@ function fillCompList(){
   const comps=[...new Set(S.bets.map(b=>(b.comp||'').trim()).filter(Boolean))].sort();
   el.innerHTML=comps.map(c=>`<option value="${esc(c)}">`).join('');
 }
+const TYPE_DEFAULTS=['Singola','Doppia','Tris','Poker','Multipla','Sistema','My Combo','Metodo 100%'];
+const TIPOLOGIA_DEFAULTS=['Segni','Marcatore','Giocatore','Sanzione','Statistica'];
+function fillSuggestList(listId,field,defaults){
+  const el=document.getElementById(listId);if(!el)return;
+  const used=[...new Set(S.bets.map(b=>(b[field]||'').trim()).filter(Boolean))];
+  const extra=used.filter(v=>!defaults.includes(v)).sort((a,b)=>a.localeCompare(b,'it'));
+  el.innerHTML=[...defaults,...extra].map(v=>`<option value="${esc(v)}">`).join('');
+}
+function fillTypeList(){fillSuggestList('type-list','type',TYPE_DEFAULTS);}
+function fillTipologiaList(){fillSuggestList('tipologia-list','tipologia',TIPOLOGIA_DEFAULTS);}
 function renderAll(){
   const M=computeMetrics();
   renderHeader(M);renderKPIs(M);renderRecovery(M);drawChart(M);renderBreakdown(M);
-  renderBets();renderMoves();renderBooks();renderStats();renderBudget(M);renderExchange();renderNotes();renderNoteBadge();renderQuickSettle();renderComp();renderMonthReport();renderCapCheck();renderSync();fillCompList();fillBookSelects();
+  renderBets();renderMoves();renderBooks();renderStats();renderBudget(M);renderExchange();renderNotes();renderNoteBadge();renderQuickSettle();renderComp();renderMonthReport();renderCapCheck();renderSync();fillCompList();fillTypeList();fillTipologiaList();fillBookSelects();
 }
 
 /* ============================================================
@@ -2545,7 +2552,8 @@ async function saveBet(){
   const rec={
     id:editingBet||uid(),
     date:document.getElementById('b-date').value||todayISO(),
-    book,type:document.getElementById('b-type').value,
+    book,type:document.getElementById('b-type').value.trim(),
+    tipologia:document.getElementById('b-tipologia').value.trim(),
     desc:document.getElementById('b-desc').value.trim(),
     comp:document.getElementById('b-comp').value.trim(),
     sport:document.getElementById('b-sport').value,
@@ -2571,6 +2579,7 @@ function editBet(id){
   const b=S.bets.find(x=>x.id===id);if(!b)return;editingBet=id;
   document.getElementById('b-date').value=b.date;document.getElementById('b-book').value=b.book;
   document.getElementById('b-type').value=b.type;document.getElementById('b-desc').value=b.desc||'';
+  document.getElementById('b-tipologia').value=b.tipologia||'';
   document.getElementById('b-comp').value=b.comp||'';
   document.getElementById('b-sport').value=b.sport||'Calcio';
   document.getElementById('b-stake').value=String(b.stake).replace('.',',');
@@ -2918,6 +2927,7 @@ if('serviceWorker' in navigator && location.protocol.startsWith('http')){
 
 (async function(){
   document.getElementById('b-date').value=todayISO();
+  document.getElementById('b-type').value='Singola';
   document.getElementById('m-date').value=todayISO();
   document.getElementById('ex-month').value=todayISO().slice(0,7);
   await load();
