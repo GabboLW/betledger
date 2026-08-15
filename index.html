@@ -932,8 +932,9 @@ function computeMetrics(){
   const yield_=turnover?realizedOwn/turnover*100:0;
   const roi=capital>0?realized/capital*100:0;
   const avgStake=ownSettled.length?turnover/ownSettled.length:0;
-  const oddsArr=S.bets.map(b=>num(b.odds)).filter(o=>o>0);
-  const avgOdds=oddsArr.length?oddsArr.reduce((a,b)=>a+b,0)/oddsArr.length:0;
+  const oddsBets=S.bets.filter(b=>num(b.odds)>0);
+  const oddsStakeSum=oddsBets.reduce((a,b)=>a+num(b.stake),0);
+  const avgOdds=oddsStakeSum?oddsBets.reduce((a,b)=>a+num(b.odds)*num(b.stake),0)/oddsStakeSum:0;
 
   // per-bet ROI series for Sharpe (own money only)
   const rets=ownSettled.filter(b=>num(b.stake)>0).map(b=>betProfit(b)/num(b.stake));
@@ -1055,7 +1056,7 @@ function renderKPIs(M){
     kpi('Yield',pct(M.yield_),'sui tuoi soldi giocati',M.yield_>0?'pos':(M.yield_<0?'neg':''),'P/L diviso il totale puntato di tasca tua (esclude le giocate bonus)','yield'),
     kpi('% vincenti',pct(M.winRate),`${M.nWon}V · ${M.nLost}P`,'','Giocate vinte sul totale delle decise (esclusi void e in corso)','winrate'),
     kpi('Volume giocato',eur(M.turnover),`media ${eur(M.avgStake)}/gioc.`,'','Somma delle puntate chiuse fatte con soldi tuoi (esclude i bonus)','volume'),
-    kpi('Quota media',M.avgOdds?M.avgOdds.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}):'—','tutte le giocate','','Media aritmetica delle quote inserite','avgodds'),
+    kpi('Quota media',M.avgOdds?M.avgOdds.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}):'—','pesata sul puntato','','Media delle quote pesata per l\'importo puntato','avgodds'),
     kpi('Sharpe',M.sharpe!==null?M.sharpe.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}):'—','per giocata',M.sharpe>0?'pos':(M.sharpe<0?'neg':''),'Rendimento medio per giocata diviso la sua deviazione standard','sharpe'),
     kpi('Kelly storico',M.kelly!==null?pct(M.kelly):'—','stake suggerito','','Criterio di Kelly stimato sul tuo storico','kelly'),
     kpi('Max drawdown',eur(M.maxDD),'calo max dai picchi',M.maxDD>0?'neg':'','Massima discesa del bankroll da un picco al minimo successivo','dd'),
@@ -1272,8 +1273,9 @@ function bookMetrics(id){
   const yield_=turnover?realizedOwn/turnover*100:0;
   const roi=capital>0?realized/capital*100:0;
   const avgStake=own.length?turnover/own.length:0;
-  const oddsArr=bets.map(b=>num(b.odds)).filter(o=>o>0);
-  const avgOdds=oddsArr.length?oddsArr.reduce((a,c)=>a+c,0)/oddsArr.length:0;
+  const oddsBets=bets.filter(b=>num(b.odds)>0);
+  const oddsStakeSum=oddsBets.reduce((a,c)=>a+num(c.stake),0);
+  const avgOdds=oddsStakeSum?oddsBets.reduce((a,c)=>a+num(c.odds)*num(c.stake),0)/oddsStakeSum:0;
   const exposure=pending.filter(b=>!b.bonus).reduce((a,b)=>a+num(b.stake),0);
   const nBonus=bets.filter(b=>b.bonus).length;
   const rets=own.filter(b=>num(b.stake)>0).map(b=>betProfit(b)/num(b.stake));
@@ -1304,7 +1306,7 @@ function openBookDetail(id){
     kpi('Yield',pct(B.yield_),'sui tuoi soldi',B.yield_>0?'pos':(B.yield_<0?'neg':''),'P/L diviso il volume giocato di tasca tua (esclude i bonus)'),
     kpi('% vincenti',pct(B.winRate),`${B.nWon}V · ${B.nLost}P`,'','Vinte sul totale delle decise'),
     kpi('Volume giocato',eur(B.turnover),`media ${eur(B.avgStake)}`,'','Somma delle puntate chiuse con soldi tuoi'),
-    kpi('Quota media',B.avgOdds?B.avgOdds.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}):'—','del book','',''),
+    kpi('Quota media',B.avgOdds?B.avgOdds.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}):'—','del book, pesata sul puntato','',''),
     kpi('Sharpe',B.sharpe!==null?B.sharpe.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}):'—','per giocata',B.sharpe>0?'pos':(B.sharpe<0?'neg':''),'Ritorno aggiustato per il rischio sulle giocate del book'),
     kpi('Kelly storico',B.kelly!==null?pct(B.kelly):'—','stake suggerito','','Frazione ottimale stimata sull\'edge del book (min. 5 decise)'),
     kpi('Max drawdown',eur(B.maxDD),'calo max',B.maxDD>0?'neg':'','Massima discesa del saldo del book da un picco'),
@@ -1983,10 +1985,10 @@ const KPI_INFO={
     note:'È la base con cui si calcola lo Yield. Le giocate bonus sono escluse perché non muovono soldi tuoi.'},
 
   avgodds:{name:'Quota media',
-    what:'La media delle quote a cui giochi. Descrive il tuo <b>stile</b>: quote basse = tante vincite ma piccole, quote alte = poche vincite ma grosse.',
-    how:'media aritmetica di tutte le quote inserite',
-    ex:M=>`Quota media 1,50 → per andare in pari devi vincere circa il <b>67%</b> delle volte. Quota media 3,00 → ti basta vincere il <b>33%</b>.<br><br>Tua: <b>${M.avgOdds?n2(M.avgOdds):'—'}</b> → pareggi vincendo circa il <b>${M.avgOdds?Math.round(100/M.avgOdds):'—'}%</b> delle giocate.`,
-    note:'Confrontala con la tua % di vincenti: se la % vincenti supera la soglia di pareggio della quota media, stai battendo il banco.'},
+    what:'La media delle quote a cui giochi, pesata per quanto hai puntato su ciascuna. Descrive il tuo <b>stile reale</b>: quote basse = tante vincite ma piccole, quote alte = poche vincite ma grosse.',
+    how:'somma di (quota × puntata) diviso il totale puntato — così una giocata da 20€ pesa venti volte più di una da 1€, invece di contare come se fossero uguali',
+    ex:M=>`Quota media 1,50 → per andare in pari devi vincere circa il <b>67%</b> delle volte. Quota media 3,00 → ti basta vincere il <b>33%</b>.<br><br>Tua (pesata sul puntato): <b>${M.avgOdds?n2(M.avgOdds):'—'}</b> → pareggi vincendo circa il <b>${M.avgOdds?Math.round(100/M.avgOdds):'—'}%</b> delle giocate.`,
+    note:'Confrontala con la tua % di vincenti: se la % vincenti supera la soglia di pareggio della quota media, stai battendo il banco. Essendo pesata sul puntato, una singola giocata "stravagante" con puntata minima non la sposta più di tanto.'},
 
   sharpe:{name:'Sharpe',
     what:'Quanto è <b>regolare</b> il tuo rendimento. Misura quanto guadagni in rapporto a quanto ballano i risultati: alto = utili costanti, basso = montagne russe.',
@@ -2410,17 +2412,17 @@ function statsByComp(){
   const map={};
   S.bets.filter(isSettled).forEach(b=>{
     const c=(b.comp||'').trim()||'— non indicata';
-    if(!map[c])map[c]={comp:c,n:0,staked:0,pl:0,won:0,dec:0,odds:0,nOdds:0};
+    if(!map[c])map[c]={comp:c,n:0,staked:0,pl:0,won:0,dec:0,oddsStakeSum:0,oddsStake:0};
     const r=map[c];r.n++;
     if(!b.bonus)r.staked+=num(b.stake);
     r.pl+=betProfit(b);
     if(b.status==='won'||b.status==='lost'){r.dec++;if(b.status==='won')r.won++;}
-    if(num(b.odds)>0){r.odds+=num(b.odds);r.nOdds++;}
+    if(num(b.odds)>0){r.oddsStakeSum+=num(b.odds)*num(b.stake);r.oddsStake+=num(b.stake);}
   });
   return Object.values(map).map(r=>({...r,
     winRate:r.dec?r.won/r.dec*100:0,
     yield:r.staked>0?r.pl/r.staked*100:null,
-    avgOdds:r.nOdds?r.odds/r.nOdds:null
+    avgOdds:r.oddsStake?r.oddsStakeSum/r.oddsStake:null
   })).sort((a,b)=>b.pl-a.pl);
 }
 function renderComp(){
@@ -2455,7 +2457,8 @@ function monthReport(key){
   const won=dec.filter(b=>b.status==='won').length;
   const yld=staked>0?pl/staked*100:null;
   const odds=bets.filter(b=>num(b.odds)>0);
-  const avgOdds=odds.length?odds.reduce((a,b)=>a+num(b.odds),0)/odds.length:null;
+  const oddsStake=odds.reduce((a,b)=>a+num(b.stake),0);
+  const avgOdds=oddsStake?odds.reduce((a,b)=>a+num(b.odds)*num(b.stake),0)/oddsStake:null;
   const avgStake=bets.filter(b=>!b.bonus).length?staked/bets.filter(b=>!b.bonus).length:0;
   const best=bets.reduce((m,b)=>betProfit(b)>(m?betProfit(m):-1e9)?b:m,null);
   const worst=bets.reduce((m,b)=>betProfit(b)<(m?betProfit(m):1e9)?b:m,null);
